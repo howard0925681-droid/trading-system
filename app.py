@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. CSS：全域強行粗體穿透樣式
+# 2. CSS：紅框字體再加粗 (font-weight: 900) 版
 st.markdown(
     """
 <style>
@@ -38,14 +38,14 @@ st.markdown(
         -webkit-text-fill-color: transparent;
     }
     
-    /* 小標題 (Labels) */
+    /* 1. 小標題 (Labels) 大小與粗細 */
     div[data-testid="stMarkdownContainer"] p, label[data-testid="stWidgetLabel"] p {
         font-size: 1.15rem !important;
         font-weight: 800 !important;
         color: #E2E8F0 !important;
     }
     
-    /* 統一外框底色與邊框 */
+    /* 2. 統一外框底色與邊框 */
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div {
         background-color: #151A23 !important;
@@ -60,24 +60,22 @@ st.markdown(
         box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
     }
 
-    /* 🔵 藍框：數字輸入框 */
+    /* 3. 數字輸入框 (藍框) */
     div[data-testid="stNumberInput"] input {
-        font-size: 1.5rem !important;
-        font-weight: 900 !important;
+        font-size: 1.25rem !important;
+        font-weight: 500 !important;
         color: #FFFFFF !important;
         height: 55px !important;
-        text-shadow: 0px 0px 1px #FFFFFF !important; /* 視覺增粗 */
     }
     
-    /* 🔴 紅框：全域穿透強行加粗下拉選單與純文字框 🔴 */
+    /* 4. 🔴 紅框區塊：下拉選單與純文字框（字體 1.75rem + 再加粗至 900）🔴 */
     div[data-testid="stTextInput"] input,
-    div[data-baseweb="select"] *,
-    div[data-baseweb="popover"] * {
-        font-size: 1.5rem !important;
-        font-weight: 900 !important; /* 極致加粗 */
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div,
+    div[data-baseweb="select"] input {
+        font-size: 1.75rem !important;
+        font-weight: 900 !important; /* 再加粗 */
         color: #FFFFFF !important;
-        -webkit-text-stroke: 0.6px #FFFFFF !important; /* 強制描邊增粗 */
-        text-shadow: 0px 0px 1px #FFFFFF !important; /* 視覺加粗特效 */
     }
 
     /* KPI 頂部卡片 */
