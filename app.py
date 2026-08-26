@@ -2,6 +2,7 @@ import datetime
 import urllib.parse
 import pandas as pd
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 
 # 1. 頁面配置
 st.set_page_config(
@@ -56,7 +57,6 @@ st.markdown(
         box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
     }
 
-    /* 數字輸入框 */
     div[data-testid="stNumberInput"] input {
         font-size: 1.25rem !important;
         font-weight: 500 !important;
@@ -64,7 +64,6 @@ st.markdown(
         height: 55px !important;
     }
     
-    /* 下拉選單 */
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div,
     div[data-baseweb="select"] input {
@@ -73,7 +72,6 @@ st.markdown(
         color: #FFFFFF !important;
     }
 
-    /* 備註文字框 (stTextInput) */
     div[data-testid="stTextInput"] input {
         font-size: 1.15rem !important;
         font-weight: 400 !important;
@@ -183,27 +181,29 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
-def get_sheet_id():
-    try:
-        url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-        return url.split("/d/")[1].split("/")[0] if "/d/" in url else None
-    except Exception:
-        return None
+# 初始化 Google Sheets 雙向連線
+try:
+    conn = st.connection("gsheets", type=GSheetsConnection)
+except Exception:
+    conn = None
 
 
-SHEET_ID = get_sheet_id()
+def fetch_sheet(sheet_name):
+    if conn:
+        try:
+            return conn.read(worksheet=sheet_name).dropna(how="all")
+        except Exception:
+            return pd.DataFrame()
+    return pd.DataFrame()
 
 
-def load_data(sheet_name):
-    if not SHEET_ID:
-        return pd.DataFrame()
-    try:
-        csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={urllib.parse.quote(sheet_name)}"
-        df = pd.read_csv(csv_url)
-        return df.dropna(how="all")
-    except Exception:
-        return pd.DataFrame()
+def save_sheet(df, sheet_name):
+    if conn:
+        try:
+            conn.update(worksheet=sheet_name, data=df)
+            st.cache_data.clear()
+        except Exception as e:
+            st.error(f"寫入 Google Sheets 失敗: {e}")
 
 
 # --- Header 區域 ---
@@ -223,29 +223,9 @@ with col_rate:
 with col_lev:
     leverage = st.number_input("帳戶槓桿倍數", value=100, step=10)
 
-# 載入雲端未平倉與歷史紀錄
-cloud_active = load_data("active")
-cloud_history = load_data("history")
-
-if "temp_trades" not in st.session_state:
-    if not cloud_active.empty:
-        st.session_state["temp_trades"] = cloud_active.to_dict(
-            orient="records"
-        )
-    else:
-        st.session_state["temp_trades"] = []
-
-if "history_list" not in st.session_state:
-    st.session_state["history_list"] = []
-
-local_history = pd.DataFrame(st.session_state["history_list"])
-
-if not cloud_history.empty and not local_history.empty:
-    history_df = pd.concat([cloud_history, local_history], ignore_index=True)
-elif not local_history.empty:
-    history_df = local_history
-else:
-    history_df = cloud_history
+# 讀取雲端 active 與 history
+active_df = fetch_sheet("active")
+history_df = fetch_sheet("history")
 
 total_usd = 0.0
 if not history_df.empty and "盈虧(USD)" in history_df.columns:
@@ -361,8 +341,8 @@ with tab1:
         )
 
     if st.button("🚀 暫存至未平倉持倉清單"):
-        st.session_state["temp_trades"].append({
-            "ID": len(st.session_state["temp_trades"]) + 1,
+        new_trade = pd.DataFrame([{
+            "ID": len(active_df) + 1,
             "開倉時間": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
             "商品": symbol,
             "方向": direction,
@@ -377,23 +357,30 @@ with tab1:
             "合約乘數": contract_size,
             "預估盈虧(USD)": round(reward_usd + swap, 2),
             "預估盈虧(TWD)": round((reward_usd + swap) * usdtwd, 2),
-        })
-        st.success("已成功加入未平倉清單！")
+        }])
+
+        updated_active = (
+            pd.concat([active_df, new_trade], ignore_index=True)
+            if not active_df.empty
+            else new_trade
+        )
+        save_sheet(updated_active, "active")
+        st.success("已成功同步寫入雲端未平倉清單！")
         st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📌 當前未平倉試算單")
 
-    if st.session_state["temp_trades"]:
-        for idx, item in enumerate(list(st.session_state["temp_trades"])):
+    if not active_df.empty:
+        for idx, item in active_df.iterrows():
             dir_color = "🟢" if item["方向"] == "BUY" else "🔴"
             with st.expander(
                 f"{dir_color} 單號 #{item['ID']} | {item['商品']} {item['方向']} | 手數: {item['手數']} | 策略: {item['策略']}"
             ):
-                st.write(item)
+                st.write(item.to_dict())
                 final_exit = st.number_input(
                     f"最終平倉價 (單號 #{item['ID']})",
-                    value=float(item.get("預估出場價", 0)),
+                    value=float(item["預估出場價"]),
                     key=f"exit_{idx}",
                 )
 
@@ -421,7 +408,7 @@ with tab1:
                             * float(item["合約乘數"])
                         ) + float(item["隔夜利息(USD)"])
 
-                    st.session_state["history_list"].append({
+                    new_history = pd.DataFrame([{
                         "ID": item["ID"],
                         "開倉時間": item["開倉時間"],
                         "結算時間": datetime.datetime.now().strftime(
@@ -439,10 +426,20 @@ with tab1:
                         "隔夜利息(USD)": item["隔夜利息(USD)"],
                         "盈虧(USD)": round(final_pnl, 2),
                         "盈虧(TWD)": round(final_pnl * usdtwd, 2),
-                    })
+                    }])
 
-                    st.session_state["temp_trades"].pop(idx)
-                    st.success("平倉成功！資料已寫入歷史。")
+                    updated_history = (
+                        pd.concat([history_df, new_history], ignore_index=True)
+                        if not history_df.empty
+                        else new_history
+                    )
+                    save_sheet(updated_history, "history")
+
+                    # 從 active 清單中移除並更新雲端
+                    remaining_active = active_df.drop(idx)
+                    save_sheet(remaining_active, "active")
+
+                    st.success("平倉成功！資料已同步轉入雲端歷史。")
                     st.rerun()
     else:
         st.info("目前尚無未平倉持倉單。")
