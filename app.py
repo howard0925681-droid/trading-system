@@ -11,11 +11,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. 專業交易員大字清晰版 CSS
+# 2. 專業交易員大字超清晰版 CSS
 st.markdown(
     """
 <style>
-    /* 全局背景與字體大小提升 */
+    /* 全局背景與字體 */
     .stApp {
         background-color: #0B0E14 !important;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -40,29 +40,39 @@ st.markdown(
     
     /* 所有表單輸入框標籤 (Labels) 加大加粗 */
     div[data-testid="stMarkdownContainer"] p, label[data-testid="stWidgetLabel"] p {
-        font-size: 1.05rem !important;
-        font-weight: 700 !important;
-        color: #CBD5E1 !important;
+        font-size: 1.15rem !important;
+        font-weight: 800 !important;
+        color: #E2E8F0 !important;
     }
     
-    /* 表單輸入框內容 (Input Values) 加大 */
-    div[data-baseweb="input"] input, div[data-baseweb="select"] div {
-        font-size: 1.15rem !important;
-        font-weight: 600 !important;
+    /* 🔴 紅框區塊：數字輸入框、下拉選單、文字框字體大幅放大 🔴 */
+    div[data-baseweb="input"] input {
+        font-size: 1.4rem !important;
+        font-weight: 700 !important;
+        color: #00F2FE !important;
+    }
+    div[data-baseweb="select"] div {
+        font-size: 1.3rem !important;
+        font-weight: 700 !important;
         color: #FFFFFF !important;
     }
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
         background-color: #151A23 !important;
-        border: 1.5px solid #2A3241 !important;
+        border: 2px solid #2A3241 !important;
         border-radius: 8px !important;
-        padding: 4px 6px !important;
+        min-height: 50px !important; /* 增加框高更顯大氣 */
     }
     div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
         border-color: #00F2FE !important;
-        box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
+        box-shadow: 0 0 12px rgba(0, 242, 254, 0.4) !important;
     }
     
-    /* KPI 頂部卡片加大 */
+    /* 加減按鈕符號 (+ / -) 加大 */
+    button[aria-label="Decrease value"], button[aria-label="Increase value"] {
+        font-size: 1.3rem !important;
+    }
+    
+    /* KPI 頂部卡片 */
     div[data-testid="stMetric"] {
         background: linear-gradient(145deg, #131822 0%, #171D2A 100%);
         border: 1.5px solid #232D3F;
@@ -72,17 +82,17 @@ st.markdown(
     }
     div[data-testid="stMetricLabel"] {
         color: #94A3B8 !important;
-        font-size: 0.95rem !important;
+        font-size: 1rem !important;
         font-weight: 700 !important;
         letter-spacing: 0.8px;
     }
     div[data-testid="stMetricValue"] {
         color: #00F2FE !important;
-        font-size: 2.2rem !important;
+        font-size: 2.3rem !important;
         font-weight: 900 !important;
     }
 
-    /* 酷炫風控試算面板卡片 (大字清析版) */
+    /* 酷炫風控試算面板卡片 */
     .risk-card {
         background: linear-gradient(135deg, #111622 0%, #172030 100%);
         border: 1.5px solid #222F43;
@@ -113,13 +123,13 @@ st.markdown(
     }
     .risk-label {
         color: #94A3B8;
-        font-size: 0.95rem;
+        font-size: 1rem;
         font-weight: 700;
         text-transform: uppercase;
         margin-bottom: 8px;
     }
     .risk-value {
-        font-size: 1.6rem;
+        font-size: 1.65rem;
         font-weight: 900;
     }
     .rr-badge {
@@ -127,7 +137,7 @@ st.markdown(
         padding: 6px 18px;
         border-radius: 8px;
         font-weight: 800;
-        font-size: 1.3rem;
+        font-size: 1.35rem;
     }
     .rr-good { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1.5px solid #10B981; }
     .rr-bad { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1.5px solid #EF4444; }
@@ -139,7 +149,7 @@ st.markdown(
         color: #FFFFFF !important;
         border: none;
         padding: 14px 28px;
-        font-size: 1.15rem;
+        font-size: 1.2rem;
         font-weight: 800;
         border-radius: 10px;
         letter-spacing: 0.5px;
@@ -153,14 +163,14 @@ st.markdown(
     
     /* Tab 分頁標題加大 */
     button[data-baseweb="tab"] {
-        font-size: 1.15rem !important;
-        font-weight: 700 !important;
+        font-size: 1.2rem !important;
+        font-weight: 800 !important;
         padding: 12px 24px !important;
     }
     
     /* 次標題加大 */
     .stMarkdown h3 {
-        font-size: 1.45rem !important;
+        font-size: 1.5rem !important;
         font-weight: 800 !important;
         color: #F8FAFC !important;
     }
