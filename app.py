@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. 專業交易員極致暗黑 CSS
+# 2. 專業交易員極致暗黑 CSS (已修正卡片滿版比例)
 st.markdown(
     """
 <style>
@@ -70,40 +70,49 @@ st.markdown(
         font-weight: 800 !important;
     }
 
-    /* 酷炫風控試算面板卡片 */
+    /* 酷炫風控試算面板卡片 (修正為滿版平均置中) */
     .risk-card {
         background: linear-gradient(135deg, #111622 0%, #172030 100%);
         border: 1px solid #222F43;
         border-left: 5px solid #00F2FE;
-        border-radius: 10px;
-        padding: 16px 20px;
-        margin: 15px 0;
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin: 20px 0;
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     }
     .risk-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 15px;
-        margin-top: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-top: 15px;
+        width: 100%;
     }
     .risk-item {
+        flex: 1;
         display: flex;
         flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 12px 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
     }
     .risk-label {
-        color: #64748B;
-        font-size: 0.78rem;
+        color: #7A899B;
+        font-size: 0.8rem;
         font-weight: 600;
         text-transform: uppercase;
+        margin-bottom: 6px;
     }
     .risk-value {
-        color: #F8FAFC;
-        font-size: 1.25rem;
-        font-weight: 700;
+        font-size: 1.35rem;
+        font-weight: 800;
     }
     .rr-badge {
         display: inline-block;
-        padding: 2px 10px;
+        padding: 4px 14px;
         border-radius: 6px;
         font-weight: 700;
         font-size: 1.1rem;
@@ -260,28 +269,28 @@ with tab1:
     )
     rr_ratio = (reward_per_unit / risk_per_unit) if risk_per_unit > 0 else 0
 
-    # 渲染自訂高顏值風控卡片
+    # 渲染滿版等分均勻風控面板
     rr_class = "rr-good" if rr_ratio >= 1.5 else "rr-bad"
     st.markdown(
         f"""
     <div class="risk-card">
-        <div style="font-weight: 700; color: #94A3B8; font-size: 0.85rem; text-transform: uppercase;">💡 即時風控試算面板</div>
+        <div style="font-weight: 700; color: #94A3B8; font-size: 0.85rem; text-transform: uppercase; text-align: center; letter-spacing: 1px;">💡 即時風控試算面板</div>
         <div class="risk-grid">
             <div class="risk-item">
                 <span class="risk-label">預佔保證金</span>
-                <span class="risk-value">${margin:,.2f}</span>
+                <span class="risk-value" style="color: #38BDF8;">${margin:,.2f}</span>
             </div>
             <div class="risk-item">
                 <span class="risk-label">預估最大虧損</span>
-                <span class="risk-value" style="color: #EF4444;">-${risk_usd:,.2f}</span>
+                <span class="risk-value" style="color: #F87171;">-${risk_usd:,.2f}</span>
             </div>
             <div class="risk-item">
                 <span class="risk-label">預估目標獲利</span>
-                <span class="risk-value" style="color: #10B981;">+${reward_usd:,.2f}</span>
+                <span class="risk-value" style="color: #34D399;">+${reward_usd:,.2f}</span>
             </div>
             <div class="risk-item">
                 <span class="risk-label">風報比 (R:R)</span>
-                <div><span class="rr-badge {rr_class}">1 : {rr_ratio:.2f}</span></div>
+                <div style="margin-top: 2px;"><span class="rr-badge {rr_class}">1 : {rr_ratio:.2f}</span></div>
             </div>
         </div>
     </div>
