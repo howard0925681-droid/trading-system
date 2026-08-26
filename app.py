@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. CSS：紅框字體放大 +0.5rem 版
+# 2. CSS：紅框字體加粗版
 st.markdown(
     """
 <style>
@@ -51,7 +51,7 @@ st.markdown(
         background-color: #151A23 !important;
         border: 1.5px solid #2A3241 !important;
         border-radius: 8px !important;
-        min-height: 55px !important; /* 增加框高容納更大字體 */
+        min-height: 55px !important;
     }
     
     div[data-baseweb="input"] > div:focus-within, 
@@ -68,13 +68,13 @@ st.markdown(
         height: 55px !important;
     }
     
-    /* 4. 🔴 紅框區塊：下拉選單與純文字框字體加大 +0.5rem (提升至 1.75rem) 🔴 */
+    /* 4. 🔴 紅框區塊：下拉選單與純文字框（字體 1.75rem + 加粗 700）🔴 */
     div[data-testid="stTextInput"] input,
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div,
     div[data-baseweb="select"] input {
-        font-size: 1.75rem !important; /* 原 1.25rem + 0.5rem */
-        font-weight: 500 !important;
+        font-size: 1.75rem !important;
+        font-weight: 700 !important; /* 加粗 */
         color: #FFFFFF !important;
     }
 
