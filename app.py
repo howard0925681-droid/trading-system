@@ -1,20 +1,15 @@
 import datetime
 import urllib.parse
 import pandas as pd
-import requests
 import streamlit as st
 
-# 頁面配置
 st.set_page_config(page_title="FX & Gold Tracker", layout="wide")
 
 
-# 從 Secrets 取得 Google 試算表 ID
 def get_sheet_id():
     try:
         url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-        if "/d/" in url:
-            return url.split("/d/")[1].split("/")[0]
-        return None
+        return url.split("/d/")[1].split("/")[0] if "/d/" in url else None
     except Exception:
         return None
 
@@ -22,7 +17,6 @@ def get_sheet_id():
 SHEET_ID = get_sheet_id()
 
 
-# 讀取 CSV
 def load_data(sheet_name):
     if not SHEET_ID:
         return pd.DataFrame()
@@ -34,7 +28,6 @@ def load_data(sheet_name):
         return pd.DataFrame()
 
 
-# --- 頂部標題 ---
 st.title("📈 FX & Gold Tracker")
 
 col_rate, col_lev, col_pnl_usd, col_pnl_twd = st.columns(4)
@@ -43,16 +36,30 @@ with col_rate:
 with col_lev:
     leverage = st.number_input("帳戶槓桿倍數", value=100, step=10)
 
-history_df = load_data("history")
-active_df = load_data("active_trades")
+# 初始化 Session State 紀錄
+if "history_list" not in st.session_state:
+    st.session_state["history_list"] = []
+if "temp_trades" not in st.session_state:
+    st.session_state["temp_trades"] = []
+
+# 讀取雲端歷史資料並與本地平倉合併
+cloud_history = load_data("history")
+local_history = pd.DataFrame(st.session_state["history_list"])
+
+if not cloud_history.empty and not local_history.empty:
+    history_df = pd.concat([cloud_history, local_history], ignore_index=True)
+elif not local_history.empty:
+    history_df = local_history
+else:
+    history_df = cloud_history
 
 total_usd = 0.0
-if not history_df.empty:
-    for col in history_df.columns:
-        if "盈虧(USD)" in col:
-            total_usd = (
-                pd.to_numeric(history_df[col], errors="coerce").fillna(0).sum()
-            )
+if not history_df.empty and "盈虧(USD)" in history_df.columns:
+    total_usd = (
+        pd.to_numeric(history_df["盈虧(USD)"], errors="coerce")
+        .fillna(0)
+        .sum()
+    )
 
 total_twd = total_usd * usdtwd
 
@@ -119,15 +126,7 @@ with tab1:
         f"**💡 試算結果：** 預佔保證金 `${margin:,.2f}` | 預估虧損 `${risk_usd:,.2f}` | 預估獲利 `${reward_usd:,.2f}` | **風報比 1 : {rr_ratio:.2f}**"
     )
 
-    if rr_ratio < 1.5 and risk_usd > 0:
-        st.warning(
-            "⚠️ 系統警告：此單風報比 (R:R) 低於 1:1.5，請確認是否符合交易紀律！"
-        )
-
-    if st.button("＋ 暫存至本地持倉"):
-        if "temp_trades" not in st.session_state:
-            st.session_state["temp_trades"] = []
-
+    if st.button("＋ 暫存至持倉清單"):
         st.session_state["temp_trades"].append({
             "ID": len(st.session_state["temp_trades"]) + 1,
             "開倉時間": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -141,27 +140,71 @@ with tab1:
             "備註": notes,
             "保證金(USD)": round(margin, 2),
             "隔夜利息(USD)": swap,
+            "合約乘數": contract_size,
             "預估盈虧(USD)": round(reward_usd + swap, 2),
             "預估盈虧(TWD)": round((reward_usd + swap) * usdtwd, 2),
         })
         st.success("已新增至當前持倉清單！")
+        st.rerun()
 
-    st.subheader("當前未平倉試算單")
-    if (
-        "temp_trades" in st.session_state
-        and st.session_state["temp_trades"]
-    ):
+    st.subheader("當前未平倉單")
+    if st.session_state["temp_trades"]:
         for idx, item in enumerate(st.session_state["temp_trades"]):
             with st.expander(
                 f"單號 #{item['ID']} | {item['商品']} {item['方向']} | 手數: {item['手數']} | 策略: {item['策略']}"
             ):
-                st.json(item)
+                st.write(item)
+                final_exit = st.number_input(
+                    f"最終平倉價 (單號 #{item['ID']})",
+                    value=float(item["預估出場價"]),
+                    key=f"exit_{idx}",
+                )
+
+                if st.button(
+                    f"✅ 結算平倉轉入歷史 (單號 #{item['ID']})", key=f"btn_{idx}"
+                ):
+                    if item["方向"] == "BUY":
+                        final_pnl = (
+                            (final_exit - item["進場價"])
+                            * item["手數"]
+                            * item["合約乘數"]
+                        ) + item["隔夜利息(USD)"]
+                    else:
+                        final_pnl = (
+                            (item["進場價"] - final_exit)
+                            * item["手數"]
+                            * item["合約乘數"]
+                        ) + item["隔夜利息(USD)"]
+
+                    st.session_state["history_list"].append({
+                        "ID": item["ID"],
+                        "開倉時間": item["開倉時間"],
+                        "結算時間": datetime.datetime.now().strftime(
+                            "%Y-%m-%d %H:%M"
+                        ),
+                        "商品": item["商品"],
+                        "方向": item["方向"],
+                        "手數": item["手數"],
+                        "進場價": item["進場價"],
+                        "預定止損價": item["預定止損價"],
+                        "出場價": final_exit,
+                        "策略": item["策略"],
+                        "備註": item["備註"],
+                        "保證金(USD)": item["保證金(USD)"],
+                        "隔夜利息(USD)": item["隔夜利息(USD)"],
+                        "盈虧(USD)": round(final_pnl, 2),
+                        "盈虧(TWD)": round(final_pnl * usdtwd, 2),
+                    })
+
+                    st.session_state["temp_trades"].pop(idx)
+                    st.success("已平倉並轉入歷史紀錄！")
+                    st.rerun()
     else:
-        st.info("目前尚無暫存持倉單。")
+        st.info("目前尚無未平倉單。")
 
 with tab2:
-    st.subheader("雲端歷史紀錄與績效分析")
+    st.subheader("雲端與本地歷史紀錄")
     if not history_df.empty:
         st.dataframe(history_df, use_container_width=True)
     else:
-        st.info("尚無雲端歷史紀錄。")
+        st.info("尚無結算歷史紀錄。")
