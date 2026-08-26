@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. CSS：紅框字體加粗版
+# 2. CSS：紅框與藍框粗細極致統一版
 st.markdown(
     """
 <style>
@@ -60,22 +60,23 @@ st.markdown(
         box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
     }
 
-    /* 3. 數字輸入框 (藍框) */
+    /* 3. 🔵 藍框：數字輸入框（字體 1.5rem + 極致加粗 800） */
     div[data-testid="stNumberInput"] input {
-        font-size: 1.25rem !important;
-        font-weight: 500 !important;
+        font-size: 1.5rem !important;
+        font-weight: 800 !important; /* 藍框粗細 */
         color: #FFFFFF !important;
         height: 55px !important;
     }
     
-    /* 4. 🔴 紅框區塊：下拉選單與純文字框（字體 1.75rem + 加粗 700）🔴 */
+    /* 4. 🔴 紅框區塊：下拉選單與純文字框（完全比照藍框，設定為 1.5rem + 800 極致加粗）🔴 */
     div[data-testid="stTextInput"] input,
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div,
     div[data-baseweb="select"] input {
-        font-size: 1.75rem !important;
-        font-weight: 700 !important; /* 加粗 */
+        font-size: 1.5rem !important;
+        font-weight: 800 !important; /* 強制加粗與藍框完全一樣 */
         color: #FFFFFF !important;
+        -webkit-font-smoothing: antialiased;
     }
 
     /* KPI 頂部卡片 */
