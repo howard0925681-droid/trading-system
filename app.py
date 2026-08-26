@@ -7,8 +7,8 @@ st.set_page_config(
     page_title="多商品交易盈虧與歷史紀錄系統", layout="wide"
 )
 
-# 初始化 Session State (模組化歷史資料庫與持倉)
-if "history" not in st_session:
+# 初始化 Session State (修正打字錯誤)
+if "history" not in st.session_state:
     st.session_state["history"] = pd.DataFrame(
         columns=[
             "ID",
@@ -89,7 +89,7 @@ with tab1:
         submit = st.form_submit_button("＋ 新增至持倉列表")
 
         if submit:
-            # 盈虧與保證金計算邏輯 (繼承原Excel邏輯)
+            # 盈虧與保證金計算邏輯
             if direction == "BUY":
                 pnl_usd = (
                     (exit_price - entry_price) * lots * contract_size
