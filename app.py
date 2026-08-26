@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. CSS 樣式設定 (獨立微調備註輸入框)
+# 2. CSS 樣式設定
 st.markdown(
     """
 <style>
@@ -64,7 +64,7 @@ st.markdown(
         height: 55px !important;
     }
     
-    /* 下拉選單：維持大字加粗 */
+    /* 下拉選單 */
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div,
     div[data-baseweb="select"] input {
@@ -73,10 +73,10 @@ st.markdown(
         color: #FFFFFF !important;
     }
 
-    /* ✏️ 備註文字框 (stTextInput)：單獨設定為小字、非粗體 ✏️ */
+    /* 備註文字框 (stTextInput) */
     div[data-testid="stTextInput"] input {
-        font-size: 1.15rem !important; /* 字體調小 */
-        font-weight: 400 !important;  /* 取消粗體 */
+        font-size: 1.15rem !important;
+        font-weight: 400 !important;
         color: #FFFFFF !important;
         height: 55px !important;
     }
@@ -223,12 +223,21 @@ with col_rate:
 with col_lev:
     leverage = st.number_input("帳戶槓桿倍數", value=100, step=10)
 
+# 載入雲端未平倉與歷史紀錄
+cloud_active = load_data("active")
+cloud_history = load_data("history")
+
+if "temp_trades" not in st.session_state:
+    if not cloud_active.empty:
+        st.session_state["temp_trades"] = cloud_active.to_dict(
+            orient="records"
+        )
+    else:
+        st.session_state["temp_trades"] = []
+
 if "history_list" not in st.session_state:
     st.session_state["history_list"] = []
-if "temp_trades" not in st.session_state:
-    st.session_state["temp_trades"] = []
 
-cloud_history = load_data("history")
 local_history = pd.DataFrame(st.session_state["history_list"])
 
 if not cloud_history.empty and not local_history.empty:
@@ -291,7 +300,7 @@ with tab1:
     )
     notes = c10.text_input("備註 (交易心態/進場條件)")
 
-    # 🧮 風控計算核心 🧮
+    # 風控計算核心
     if direction == "BUY":
         risk_points = entry_price - stop_loss
         reward_points = exit_price - entry_price
@@ -376,7 +385,7 @@ with tab1:
     st.subheader("📌 當前未平倉試算單")
 
     if st.session_state["temp_trades"]:
-        for idx, item in enumerate(st.session_state["temp_trades"]):
+        for idx, item in enumerate(list(st.session_state["temp_trades"])):
             dir_color = "🟢" if item["方向"] == "BUY" else "🔴"
             with st.expander(
                 f"{dir_color} 單號 #{item['ID']} | {item['商品']} {item['方向']} | 手數: {item['手數']} | 策略: {item['策略']}"
@@ -384,7 +393,7 @@ with tab1:
                 st.write(item)
                 final_exit = st.number_input(
                     f"最終平倉價 (單號 #{item['ID']})",
-                    value=float(item["預估出場價"]),
+                    value=float(item.get("預估出場價", 0)),
                     key=f"exit_{idx}",
                 )
 
@@ -392,19 +401,25 @@ with tab1:
                     f"✅ 結算平倉轉入歷史 (單號 #{item['ID']})", key=f"btn_{idx}"
                 ):
                     if item["方向"] == "BUY":
-                        diff = final_exit - item["進場價"]
+                        diff = final_exit - float(item["進場價"])
                     else:
-                        diff = item["進場價"] - final_exit
+                        diff = float(item["進場價"]) - final_exit
 
                     if item["商品"] == "USDJPY":
                         final_pnl = (
-                            (diff * item["手數"] * item["合約乘數"])
+                            (
+                                diff
+                                * float(item["手數"])
+                                * float(item["合約乘數"])
+                            )
                             / final_exit
-                        ) + item["隔夜利息(USD)"]
+                        ) + float(item["隔夜利息(USD)"])
                     else:
                         final_pnl = (
-                            diff * item["手數"] * item["合約乘數"]
-                        ) + item["隔夜利息(USD)"]
+                            diff
+                            * float(item["手數"])
+                            * float(item["合約乘數"])
+                        ) + float(item["隔夜利息(USD)"])
 
                     st.session_state["history_list"].append({
                         "ID": item["ID"],
