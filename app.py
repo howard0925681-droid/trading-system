@@ -3,9 +3,124 @@ import urllib.parse
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="FX & Gold Tracker", layout="wide")
+# 1. 頁面配置
+st.set_page_config(
+    page_title="FX & Gold Tracker Pro",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+# 2. 自訂高質感 CSS 樣式
+st.markdown(
+    """
+<style>
+    /* 全局背景與字體優化 */
+    .stApp {
+        background-color: #0e1117;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    /* 隱藏預設頁眉與選單多餘邊框 */
+    header[data-testid="stHeader"] {
+        background: transparent;
+    }
+    
+    /* 標題美化 */
+    .main-title {
+        font-size: 2.2rem;
+        font-weight: 800;
+        background: linear-gradient(90deg, #4FACFE 0%, #00F2FE 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* KPI 數據卡片美化 */
+    div[data-testid="stMetric"] {
+        background: #161b22;
+        border: 1px solid #30363d;
+        padding: 18px 22px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-2px);
+        border-color: #58a6ff;
+    }
+    div[data-testid="stMetricLabel"] {
+        color: #8b949e !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    div[data-testid="stMetricValue"] {
+        color: #58a6ff !important;
+        font-size: 1.8rem !important;
+        font-weight: 700 !important;
+    }
+    
+    /* 按鈕美化 */
+    .stButton>button {
+        width: 100%;
+        background: linear-gradient(135deg, #1f6feb 0%, #1158c7 100%);
+        color: #ffffff !important;
+        border: none;
+        padding: 10px 20px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(31, 111, 235, 0.3);
+        transition: all 0.2s ease;
+    }
+    .stButton>button:hover {
+        background: linear-gradient(135deg, #388bfd 0%, #1f6feb 100%);
+        box-shadow: 0 4px 15px rgba(56, 139, 253, 0.4);
+        transform: translateY(-1px);
+    }
+    
+    /* 折疊卡片 (Expander) 美化 */
+    .streamlit-expanderHeader {
+        background-color: #161b22 !important;
+        border-radius: 8px !important;
+        border: 1px solid #30363d !important;
+        color: #c9d1d9 !important;
+        font-weight: 600 !important;
+    }
+    .streamlit-expanderContent {
+        background-color: #0d1117 !important;
+        border: 1px solid #30363d !important;
+        border-top: none !important;
+        border-bottom-left-radius: 8px !important;
+        border-bottom-right-radius: 8px !important;
+    }
+    
+    /* Tab 頁籤標題美化 */
+    button[data-baseweb="tab"] {
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        color: #8b949e !important;
+        padding: 10px 20px !important;
+    }
+    button[aria-selected="true"] {
+        color: #58a6ff !important;
+        border-bottom-color: #58a6ff !important;
+    }
+    
+    /* 提示訊息框美化 */
+    .stAlert {
+        border-radius: 10px !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 
+# 從 Secrets 取得 Google 試算表 ID
 def get_sheet_id():
     try:
         url = st.secrets["connections"]["gsheets"]["spreadsheet"]
@@ -28,7 +143,12 @@ def load_data(sheet_name):
         return pd.DataFrame()
 
 
-st.title("📈 FX & Gold Tracker")
+# --- 頂部區域 ---
+st.markdown(
+    '<div class="main-title">📈 FX & Gold Tracker Pro</div>',
+    unsafe_allow_html=True,
+)
+st.caption("專業交易員風控試算與戰術檢討儀表板")
 
 col_rate, col_lev, col_pnl_usd, col_pnl_twd = st.columns(4)
 with col_rate:
@@ -36,13 +156,13 @@ with col_rate:
 with col_lev:
     leverage = st.number_input("帳戶槓桿倍數", value=100, step=10)
 
-# 初始化 Session State 紀錄
+# 初始化 Session State
 if "history_list" not in st.session_state:
     st.session_state["history_list"] = []
 if "temp_trades" not in st.session_state:
     st.session_state["temp_trades"] = []
 
-# 讀取雲端歷史資料並與本地平倉合併
+# 讀取雲端與本地資料
 cloud_history = load_data("history")
 local_history = pd.DataFrame(st.session_state["history_list"])
 
@@ -67,9 +187,10 @@ with col_pnl_usd:
 with col_pnl_twd:
     st.metric("歷史累計總盈虧 (TWD)", f"NT${total_twd:,.0f}")
 
-st.divider()
+st.markdown("<br>", unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["📊 即時持倉與試算", "📜 歷史交易紀錄 & 績效分析"])
+# --- 主功能 Tabs ---
+tab1, tab2 = st.tabs(["📊 即時持倉與風控試算", "📜 歷史紀錄與績效分析"])
 
 CONTRACT_SIZES = {
     "XAUUSD": 100,
@@ -80,7 +201,8 @@ CONTRACT_SIZES = {
 }
 
 with tab1:
-    st.subheader("新增持倉 / 動態風控試算")
+    st.subheader("⚡ 建立新交易與風控評估")
+
     c1, c2, c3, c4 = st.columns(4)
     symbol = c1.selectbox("商品名稱", list(CONTRACT_SIZES.keys()))
     direction = c2.selectbox("方向", ["BUY", "SELL"])
@@ -104,6 +226,7 @@ with tab1:
     )
     notes = c10.text_input("備註 (交易心態/進場條件)")
 
+    # 風險計算
     if direction == "BUY":
         risk_per_unit = entry_price - stop_loss
         reward_per_unit = exit_price - entry_price
@@ -122,15 +245,15 @@ with tab1:
     rr_ratio = (reward_per_unit / risk_per_unit) if risk_per_unit > 0 else 0
 
     st.info(
-        f"**💡 試算結果：** 預佔保證金 `${margin:,.2f}` | 預估虧損 `${risk_usd:,.2f}` | 預估獲利 `${reward_usd:,.2f}` | **風報比 1 : {rr_ratio:.2f}**"
+        f"**💡 風控試算卡：** 預佔保證金 `${margin:,.2f}` | 預估風險 `${risk_usd:,.2f}` | 預估獲利 `${reward_usd:,.2f}` | **風報比 1 : {rr_ratio:.2f}**"
     )
 
     if rr_ratio < 1.5 and risk_usd > 0:
         st.warning(
-            "⚠️ 系統警告：此單風報比 (R:R) 低於 1:1.5，請確認是否符合交易紀律！"
+            "⚠️ **交易紀律提醒：** 當前風報比低於 1:1.5，請評估是否符合系統進場條件！"
         )
 
-    if st.button("＋ 暫存至持倉清單"):
+    if st.button("＋ 暫存至未平倉持倉清單"):
         st.session_state["temp_trades"].append({
             "ID": len(st.session_state["temp_trades"]) + 1,
             "開倉時間": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -148,10 +271,12 @@ with tab1:
             "預估盈虧(USD)": round(reward_usd + swap, 2),
             "預估盈虧(TWD)": round((reward_usd + swap) * usdtwd, 2),
         })
-        st.success("已新增至當前持倉清單！")
+        st.success("已成功加入未平倉清單！")
         st.rerun()
 
-    st.subheader("當前未平倉單")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("📌 當前未平倉試算單")
+
     if st.session_state["temp_trades"]:
         for idx, item in enumerate(st.session_state["temp_trades"]):
             with st.expander(
@@ -201,26 +326,35 @@ with tab1:
                     })
 
                     st.session_state["temp_trades"].pop(idx)
-                    st.success("已平倉並轉入歷史紀錄！")
+                    st.success("平倉成功！資料已寫入歷史。")
                     st.rerun()
     else:
-        st.info("目前尚無未平倉單。")
+        st.info("目前尚無未平倉持倉單。")
 
 with tab2:
     st.subheader("📊 營運指標與戰術檢討")
+
     if not history_df.empty and len(history_df) > 0:
-        # 轉數字確保能計算
-        pnl_series = pd.to_numeric(history_df["盈虧(USD)"], errors="coerce").fillna(0)
+        pnl_series = pd.to_numeric(
+            history_df["盈虧(USD)"], errors="coerce"
+        ).fillna(0)
 
         winning_trades = pnl_series[pnl_series > 0]
         losing_trades = pnl_series[pnl_series < 0]
 
-        win_rate = (len(winning_trades) / len(pnl_series)) * 100 if len(pnl_series) > 0 else 0
+        win_rate = (
+            (len(winning_trades) / len(pnl_series)) * 100
+            if len(pnl_series) > 0
+            else 0
+        )
         gross_profit = winning_trades.sum()
         gross_loss = abs(losing_trades.sum())
-        profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (float("inf") if gross_profit > 0 else 0.0)
+        profit_factor = (
+            (gross_profit / gross_loss)
+            if gross_loss > 0
+            else (float("inf") if gross_profit > 0 else 0.0)
+        )
 
-        # 計算資金曲線與最大拉回
         cum_pnl = pnl_series.cumsum()
         peak = cum_pnl.cummax()
         drawdown = cum_pnl - peak
@@ -234,12 +368,13 @@ with tab2:
         )
         m3.metric("最大拉回 (Max Drawdown)", f"${max_drawdown:,.2f} USD")
 
+        st.markdown("<br>", unsafe_allow_html=True)
         st.subheader("📈 資金成長曲線 (USD)")
-        st.line_chart(cum_pnl)
+        st.line_chart(cum_pnl, use_container_width=True)
 
         st.divider()
 
         st.subheader("📜 歷史已結算交易清單")
         st.dataframe(history_df, use_container_width=True)
     else:
-        st.info("目前尚無歷史結算紀錄，請先完成一筆平倉交易。")
+        st.info("目前尚無歷史結算紀錄。")
