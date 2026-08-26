@@ -11,18 +11,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. 專業交易員大字超清晰版 CSS
+# 2. 強制最高權限大字版 CSS
 st.markdown(
     """
 <style>
-    /* 全局背景與字體 */
+    /* 全局背景 */
     .stApp {
         background-color: #0B0E14 !important;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
     header[data-testid="stHeader"] { background: transparent; }
     
-    /* 頂部標題與 Logo */
+    /* 頂部標題 */
     .title-container {
         display: flex;
         align-items: center;
@@ -38,38 +38,44 @@ st.markdown(
         -webkit-text-fill-color: transparent;
     }
     
-    /* 所有表單輸入框標籤 (Labels) 加大加粗 */
+    /* 標籤 (Labels) 加大 */
     div[data-testid="stMarkdownContainer"] p, label[data-testid="stWidgetLabel"] p {
-        font-size: 1.15rem !important;
+        font-size: 1.2rem !important;
         font-weight: 800 !important;
         color: #E2E8F0 !important;
     }
     
-    /* 🔴 紅框區塊：數字輸入框、下拉選單、文字框字體大幅放大 🔴 */
+    /* 🔴 強制放大數字輸入框內的數字 (Numbers) 🔴 */
+    div[data-testid="stNumberInput"] input,
+    input[type="number"],
     div[data-baseweb="input"] input {
-        font-size: 1.4rem !important;
-        font-weight: 700 !important;
+        font-size: 1.7rem !important; /* 數字大幅放大至 27px */
+        font-weight: 900 !important;
         color: #00F2FE !important;
+        height: 55px !important;
     }
-    div[data-baseweb="select"] div {
-        font-size: 1.3rem !important;
-        font-weight: 700 !important;
+    
+    /* 下拉選單與純文字框 (Select & Text Inputs) 放大 */
+    div[data-baseweb="select"] div, div[data-baseweb="select"] span {
+        font-size: 1.4rem !important;
+        font-weight: 800 !important;
         color: #FFFFFF !important;
     }
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
         background-color: #151A23 !important;
         border: 2px solid #2A3241 !important;
-        border-radius: 8px !important;
-        min-height: 50px !important; /* 增加框高更顯大氣 */
+        border-radius: 10px !important;
+        min-height: 55px !important; /* 框高加大 */
     }
     div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
         border-color: #00F2FE !important;
-        box-shadow: 0 0 12px rgba(0, 242, 254, 0.4) !important;
+        box-shadow: 0 0 15px rgba(0, 242, 254, 0.45) !important;
     }
     
-    /* 加減按鈕符號 (+ / -) 加大 */
+    /* 加減按鈕 (+/-) 加大 */
     button[aria-label="Decrease value"], button[aria-label="Increase value"] {
-        font-size: 1.3rem !important;
+        font-size: 1.5rem !important;
+        padding: 8px 12px !important;
     }
     
     /* KPI 頂部卡片 */
@@ -129,7 +135,7 @@ st.markdown(
         margin-bottom: 8px;
     }
     .risk-value {
-        font-size: 1.65rem;
+        font-size: 1.7rem;
         font-weight: 900;
     }
     .rr-badge {
@@ -137,7 +143,7 @@ st.markdown(
         padding: 6px 18px;
         border-radius: 8px;
         font-weight: 800;
-        font-size: 1.35rem;
+        font-size: 1.4rem;
     }
     .rr-good { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1.5px solid #10B981; }
     .rr-bad { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1.5px solid #EF4444; }
@@ -148,8 +154,8 @@ st.markdown(
         background: linear-gradient(90deg, #0052D4 0%, #4364F7 51%, #6FB1FC 100%);
         color: #FFFFFF !important;
         border: none;
-        padding: 14px 28px;
-        font-size: 1.2rem;
+        padding: 16px 28px;
+        font-size: 1.25rem;
         font-weight: 800;
         border-radius: 10px;
         letter-spacing: 0.5px;
@@ -163,14 +169,14 @@ st.markdown(
     
     /* Tab 分頁標題加大 */
     button[data-baseweb="tab"] {
-        font-size: 1.2rem !important;
+        font-size: 1.25rem !important;
         font-weight: 800 !important;
         padding: 12px 24px !important;
     }
     
     /* 次標題加大 */
     .stMarkdown h3 {
-        font-size: 1.5rem !important;
+        font-size: 1.55rem !important;
         font-weight: 800 !important;
         color: #F8FAFC !important;
     }
