@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # 🔗 Google Apps Script 網址 🔗
-GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kwg0FB28E2g-_NifDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
+GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kWgOFB28E2g-_NIfDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
 
 # 2. CSS 樣式設定
 st.markdown(
