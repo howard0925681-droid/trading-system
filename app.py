@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. 統一外框與純白正常字體 CSS
+# 2. 精確統一字體大小 CSS
 st.markdown(
     """
 <style>
@@ -38,37 +38,45 @@ st.markdown(
         -webkit-text-fill-color: transparent;
     }
     
-    /* 小標籤 (Labels) 保留加粗與明確顏色 */
+    /* 小標籤 (Labels) */
     div[data-testid="stMarkdownContainer"] p, label[data-testid="stWidgetLabel"] p {
         font-size: 1.15rem !important;
         font-weight: 800 !important;
         color: #E2E8F0 !important;
     }
     
-    /* ⚪ 紅框區塊：文字/數字改純白、取消加粗，且框高完全一致 (50px) ⚪ */
+    /* 🔵 藍框與 🔴 紅框統一字體：數字輸入框、下拉選單、文字框皆為 1.5rem ⚪ */
+    /* 藍框：數字輸入框內文字 */
     div[data-testid="stNumberInput"] input,
-    input[type="number"],
-    div[data-baseweb="input"] input {
-        font-size: 1.3rem !important;
-        font-weight: 400 !important; /* 取消加粗 */
-        color: #FFFFFF !important; /* 改為純白 */
+    input[type="number"] {
+        font-size: 1.5rem !important;
+        font-weight: 400 !important;
+        color: #FFFFFF !important;
         height: 50px !important;
     }
     
-    div[data-baseweb="select"] div, 
-    div[data-baseweb="select"] span {
-        font-size: 1.25rem !important;
-        font-weight: 400 !important; /* 取消加粗 */
-        color: #FFFFFF !important; /* 改為純白 */
+    /* 紅框：下拉選單選取文字與選項 */
+    div[data-baseweb="select"] * {
+        font-size: 1.5rem !important;
+        font-weight: 400 !important;
+        color: #FFFFFF !important;
     }
     
-    /* 統一所有輸入框外框高度與圓角 */
+    /* 紅框：純文字輸入框 */
+    div[data-testid="stTextInput"] input {
+        font-size: 1.5rem !important;
+        font-weight: 400 !important;
+        color: #FFFFFF !important;
+        height: 50px !important;
+    }
+    
+    /* 統一所有外框高度 (50px) 與外觀 */
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div {
         background-color: #151A23 !important;
         border: 1.5px solid #2A3241 !important;
         border-radius: 8px !important;
-        height: 50px !important; /* 強制所有框大小一致 */
+        height: 50px !important;
         min-height: 50px !important;
     }
     
@@ -76,12 +84,6 @@ st.markdown(
     div[data-baseweb="select"] > div:focus-within {
         border-color: #00F2FE !important;
         box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
-    }
-    
-    /* 加減按鈕 (+/-) 樣式 */
-    button[aria-label="Decrease value"], button[aria-label="Increase value"] {
-        font-size: 1.2rem !important;
-        padding: 4px 10px !important;
     }
     
     /* KPI 頂部卡片 */
@@ -173,14 +175,14 @@ st.markdown(
         box-shadow: 0 6px 25px rgba(67, 100, 247, 0.6);
     }
     
-    /* Tab 分頁標題加大 */
+    /* Tab 分頁標題 */
     button[data-baseweb="tab"] {
         font-size: 1.2rem !important;
         font-weight: 800 !important;
         padding: 12px 24px !important;
     }
     
-    /* 次標題加大 */
+    /* 次標題 */
     .stMarkdown h3 {
         font-size: 1.5rem !important;
         font-weight: 800 !important;
