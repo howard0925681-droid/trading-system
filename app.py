@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. CSS 樣式設定
+# 2. CSS 樣式設定 (獨立微調備註輸入框)
 st.markdown(
     """
 <style>
@@ -56,6 +56,7 @@ st.markdown(
         box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
     }
 
+    /* 數字輸入框 */
     div[data-testid="stNumberInput"] input {
         font-size: 1.25rem !important;
         font-weight: 500 !important;
@@ -63,13 +64,21 @@ st.markdown(
         height: 55px !important;
     }
     
-    div[data-testid="stTextInput"] input,
+    /* 下拉選單：維持大字加粗 */
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div,
     div[data-baseweb="select"] input {
         font-size: 1.75rem !important;
         font-weight: 900 !important;
         color: #FFFFFF !important;
+    }
+
+    /* ✏️ 備註文字框 (stTextInput)：單獨設定為小字、非粗體 ✏️ */
+    div[data-testid="stTextInput"] input {
+        font-size: 1.15rem !important; /* 字體調小 */
+        font-weight: 400 !important;  /* 取消粗體 */
+        color: #FFFFFF !important;
+        height: 55px !important;
     }
 
     div[data-testid="stMetric"] {
@@ -270,7 +279,7 @@ with tab1:
     c5, c6, c7, c8 = st.columns(4)
     entry_price = c5.number_input("進場價位", value=158.93, format="%.2f")
     exit_price = c6.number_input(
-        "預期止盈 (TP)", value=158.20, format="%.2f"
+        "預期止盈 (TP)", value=158.10, format="%.2f"
     )
     stop_loss = c7.number_input("預定止損 (SL)", value=159.45, format="%.2f")
     swap = c8.number_input("隔夜利息 (USD)", value=0.0, step=0.5)
@@ -282,7 +291,7 @@ with tab1:
     )
     notes = c10.text_input("備註 (交易心態/進場條件)")
 
-    # 🧮 修正後的正確金融風控計算核心 🧮
+    # 🧮 風控計算核心 🧮
     if direction == "BUY":
         risk_points = entry_price - stop_loss
         reward_points = exit_price - entry_price
@@ -294,18 +303,14 @@ with tab1:
     reward_points = max(0.0, reward_points)
 
     if symbol == "USDJPY":
-        # USDJPY: 基礎貨幣為 USD，保證金 = 手數 * 合約大小 / 槓桿
         margin = (lots * contract_size) / leverage
-        # 盈虧計價貨幣為 JPY，需除以進場匯率轉為 USD
         risk_usd = (risk_points * lots * contract_size) / entry_price
         reward_usd = (reward_points * lots * contract_size) / entry_price
     elif symbol == "XAUUSD":
-        # 黃金: 1點就是 $1 USD
         margin = (entry_price * lots * contract_size) / leverage
         risk_usd = risk_points * lots * contract_size
         reward_usd = reward_points * lots * contract_size
     else:
-        # 其他外匯對 (如 EURUSD, GBPUSD 等)
         margin = (entry_price * lots * contract_size) / leverage
         risk_usd = risk_points * lots * contract_size
         reward_usd = reward_points * lots * contract_size
