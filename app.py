@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. 精確突破 Streamlit 底層特異性 CSS
+# 2. 徹底解決字體與框高視覺差 CSS
 st.markdown(
     """
 <style>
@@ -38,51 +38,19 @@ st.markdown(
         -webkit-text-fill-color: transparent;
     }
     
-    /* 小標籤 (Labels) */
+    /* 1. 統一所有小標題 (Labels) 大小與粗細 */
     div[data-testid="stMarkdownContainer"] p, label[data-testid="stWidgetLabel"] p {
         font-size: 1.15rem !important;
         font-weight: 800 !important;
         color: #E2E8F0 !important;
     }
     
-    /* 🔵 藍框：數字輸入框 */
-    div[data-testid="stNumberInput"] input,
-    input[type="number"] {
-        font-size: 1.6rem !important;
-        font-weight: 400 !important;
-        color: #FFFFFF !important;
-        height: 50px !important;
-    }
-    
-    /* 🔴 紅框：徹底鎖定下拉選單的最深層 DOM 元素 (強制放大) */
-    div[data-baseweb="select"] span,
-    div[data-baseweb="select"] input,
-    div[data-baseweb="select"] div[role="button"],
-    div[data-baseweb="select"] div {
-        font-size: 1.6rem !important;
-        font-weight: 400 !important;
-        color: #FFFFFF !important;
-        line-height: 1.5 !important;
-    }
-    
-    /* 🔴 紅框：純文字輸入框 */
-    div[data-testid="stTextInput"] input {
-        font-size: 1.6rem !important;
-        font-weight: 400 !important;
-        color: #FFFFFF !important;
-        height: 50px !important;
-    }
-    
-    /* 統一所有框的外觀與高度 (50px) */
+    /* 2. 統一外框底色與邊框 */
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div {
         background-color: #151A23 !important;
         border: 1.5px solid #2A3241 !important;
         border-radius: 8px !important;
-        height: 50px !important;
-        min-height: 50px !important;
-        display: flex !important;
-        align-items: center !important;
     }
     
     div[data-baseweb="input"] > div:focus-within, 
@@ -90,7 +58,23 @@ st.markdown(
         border-color: #00F2FE !important;
         box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
     }
+
+    /* 3. 強制讓「數字框」、「下拉選單」、「文字框」內部的文字大小完全一致 (20px) */
+    div[data-testid="stNumberInput"] input,
+    div[data-testid="stTextInput"] input,
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div {
+        font-size: 1.25rem !important; /* 約 20px，舒適且平衡 */
+        font-weight: 500 !important;
+        color: #FFFFFF !important;
+    }
     
+    /* 4. 重置下拉選單的壓縮間距，讓文字完全展示 */
+    div[data-baseweb="select"] > div {
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+    }
+
     /* KPI 頂部卡片 */
     div[data-testid="stMetric"] {
         background: linear-gradient(145deg, #131822 0%, #171D2A 100%);
