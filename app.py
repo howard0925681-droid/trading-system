@@ -1,6 +1,7 @@
 import datetime
 import urllib.parse
 import pandas as pd
+import requests
 import streamlit as st
 
 # 1. 頁面配置
@@ -10,6 +11,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kWgOFB28E2g-_NIfDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
 
 # 2. CSS 樣式設定
 st.markdown(
@@ -203,6 +206,14 @@ def load_data(sheet_name):
         return pd.DataFrame()
 
 
+def sync_to_cloud(payload):
+    if "script.google.com" in GAS_WEBAPP_URL:
+        try:
+            requests.post(GAS_WEBAPP_URL, json=payload, timeout=5)
+        except Exception as e:
+            st.warning(f"雲端同步中... {e}")
+
+
 # --- Header 區域 ---
 st.markdown(
     """
@@ -220,12 +231,12 @@ with col_rate:
 with col_lev:
     leverage = st.number_input("帳戶槓桿倍數", value=100, step=10)
 
+cloud_active = load_data("active")
+cloud_history = load_data("history")
+
 if "history_list" not in st.session_state:
     st.session_state["history_list"] = []
-if "temp_trades" not in st.session_state:
-    st.session_state["temp_trades"] = []
 
-cloud_history = load_data("history")
 local_history = pd.DataFrame(st.session_state["history_list"])
 
 if not cloud_history.empty and not local_history.empty:
@@ -349,88 +360,97 @@ with tab1:
         )
 
     if st.button("🚀 暫存至未平倉持倉清單"):
-        st.session_state["temp_trades"].append({
-            "ID": len(st.session_state["temp_trades"]) + 1,
-            "開倉時間": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "商品": symbol,
-            "方向": direction,
-            "手數": lots,
-            "進場價": entry_price,
-            "預定止損價": stop_loss,
-            "預估出場價": exit_price,
-            "策略": strategy,
-            "備註": notes,
-            "保證金(USD)": round(margin, 2),
-            "隔夜利息(USD)": swap,
-            "合約乘數": contract_size,
-            "預估盈虧(USD)": round(reward_usd + swap, 2),
-            "預估盈虧(TWD)": round((reward_usd + swap) * usdtwd, 2),
-        })
-        st.success("已成功加入未平倉清單！")
+        new_id = (
+            int(cloud_active["ID"].max()) + 1
+            if not cloud_active.empty and "ID" in cloud_active.columns
+            else 1
+        )
+        trade_data = {
+            "action": "add",
+            "id": new_id,
+            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "symbol": symbol,
+            "direction": direction,
+            "lots": lots,
+            "entry": entry_price,
+            "sl": stop_loss,
+            "tp": exit_price,
+            "strategy": strategy,
+            "notes": notes,
+            "margin": round(margin, 2),
+            "swap": swap,
+            "contract": contract_size,
+            "pnl_usd": round(reward_usd + swap, 2),
+            "pnl_twd": round((reward_usd + swap) * usdtwd, 2),
+        }
+
+        sync_to_cloud(trade_data)
+        st.success("已成功寫入雲端！重新整理網頁資料也不會不見！")
         st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📌 當前未平倉試算單")
 
-    if st.session_state["temp_trades"]:
-        for idx, item in enumerate(st.session_state["temp_trades"]):
-            dir_color = "🟢" if item["方向"] == "BUY" else "🔴"
+    if not cloud_active.empty:
+        for idx, item in cloud_active.iterrows():
+            dir_color = "🟢" if str(item.get("方向", "")) == "BUY" else "🔴"
+            item_id = item.get("ID", idx)
             with st.expander(
-                f"{dir_color} 單號 #{item['ID']} | {item['商品']} {item['方向']} | 手數: {item['手數']} | 策略: {item['策略']}"
+                f"{dir_color} 單號 #{item_id} | {item.get('商品','')} {item.get('方向','')} | 手數: {item.get('手數','')} | 策略: {item.get('策略','')}"
             ):
-                st.write(item)
+                st.write(item.to_dict())
                 final_exit = st.number_input(
-                    f"最終平倉價 (單號 #{item['ID']})",
-                    value=float(item["預估出場價"]),
+                    f"最終平倉價 (單號 #{item_id})",
+                    value=float(item.get("預估出場價", 0)),
                     key=f"exit_{idx}",
                 )
 
                 if st.button(
-                    f"✅ 結算平倉轉入歷史 (單號 #{item['ID']})", key=f"btn_{idx}"
+                    f"✅ 結算平倉轉入歷史 (單號 #{item_id})", key=f"btn_{idx}"
                 ):
-                    if item["方向"] == "BUY":
-                        diff = final_exit - float(item["進場價"])
+                    if item.get("方向", "") == "BUY":
+                        diff = final_exit - float(item.get("進場價", 0))
                     else:
-                        diff = float(item["進場價"]) - final_exit
+                        diff = float(item.get("進場價", 0)) - final_exit
 
-                    if item["商品"] == "USDJPY":
+                    if item.get("商品", "") == "USDJPY":
                         final_pnl = (
                             (
                                 diff
-                                * float(item["手數"])
-                                * float(item["合約乘數"])
+                                * float(item.get("手數", 0))
+                                * float(item.get("合約乘數", 100000))
                             )
                             / final_exit
-                        ) + float(item["隔夜利息(USD)"])
+                        ) + float(item.get("隔夜利息(USD)", 0))
                     else:
                         final_pnl = (
                             diff
-                            * float(item["手數"])
-                            * float(item["合約乘數"])
-                        ) + float(item["隔夜利息(USD)"])
+                            * float(item.get("手數", 0))
+                            * float(item.get("合約乘數", 100000))
+                        ) + float(item.get("隔夜利息(USD)", 0))
 
                     st.session_state["history_list"].append({
-                        "ID": item["ID"],
-                        "開倉時間": item["開倉時間"],
+                        "ID": item_id,
+                        "開倉時間": item.get("開倉時間", ""),
                         "結算時間": datetime.datetime.now().strftime(
                             "%Y-%m-%d %H:%M"
                         ),
-                        "商品": item["商品"],
-                        "方向": item["方向"],
-                        "手數": item["手數"],
-                        "進場價": item["進場價"],
-                        "預定止損價": item["預定止損價"],
+                        "商品": item.get("商品", ""),
+                        "方向": item.get("方向", ""),
+                        "手數": item.get("手數", ""),
+                        "進場價": item.get("進場價", ""),
+                        "預定止損價": item.get("預定止損價", ""),
                         "出場價": final_exit,
-                        "策略": item["策略"],
-                        "備註": item["備註"],
-                        "保證金(USD)": item["保證金(USD)"],
-                        "隔夜利息(USD)": item["隔夜利息(USD)"],
+                        "策略": item.get("策略", ""),
+                        "備註": item.get("備註", ""),
+                        "保證金(USD)": item.get("保證金(USD)", ""),
+                        "隔夜利息(USD)": item.get("隔夜利息(USD)", ""),
                         "盈虧(USD)": round(final_pnl, 2),
                         "盈虧(TWD)": round(final_pnl * usdtwd, 2),
                     })
 
-                    st.session_state["temp_trades"].pop(idx)
-                    st.success("平倉成功！資料已寫入歷史。")
+                    sync_to_cloud({"action": "delete", "id": item_id})
+                    st.success("平倉成功！單號已從未平倉移至歷史紀錄。")
                     st.rerun()
     else:
         st.info("目前尚無未平倉持倉單。")
