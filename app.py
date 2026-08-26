@@ -5,7 +5,7 @@ import streamlit as st
 
 # 頁面配置
 st.set_page_config(
-    page_title="多商品交易盈虧與歷史紀錄系統", layout="wide"
+    page_title="FX & Gold Tracker", layout="wide"
 )
 
 
@@ -38,7 +38,7 @@ def load_data(sheet_name):
 
 
 # --- 頂部參數 ---
-st.title("📈 多商品即時盈虧與歷史交易管理系統")
+st.title("📈 FX & Gold Tracker | 交易風控與紀錄系統")
 
 if not SHEET_ID:
     st.error(
