@@ -1,7 +1,7 @@
 import datetime
 import pandas as pd
 import streamlit as st
-from streamlit_gsheets_connection import GSheetsConnection
+from st_gsheets_connection import GSheetsConnection
 
 # 頁面配置
 st.set_page_config(
