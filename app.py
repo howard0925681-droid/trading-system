@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. 精確統一字體大小 CSS
+# 2. 精確突破 Streamlit 底層特異性 CSS
 st.markdown(
     """
 <style>
@@ -45,32 +45,35 @@ st.markdown(
         color: #E2E8F0 !important;
     }
     
-    /* 🔵 藍框與 🔴 紅框統一字體：數字輸入框、下拉選單、文字框皆為 1.5rem ⚪ */
-    /* 藍框：數字輸入框內文字 */
+    /* 🔵 藍框：數字輸入框 */
     div[data-testid="stNumberInput"] input,
     input[type="number"] {
-        font-size: 1.5rem !important;
+        font-size: 1.6rem !important;
         font-weight: 400 !important;
         color: #FFFFFF !important;
         height: 50px !important;
     }
     
-    /* 紅框：下拉選單選取文字與選項 */
-    div[data-baseweb="select"] * {
-        font-size: 1.5rem !important;
+    /* 🔴 紅框：徹底鎖定下拉選單的最深層 DOM 元素 (強制放大) */
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] input,
+    div[data-baseweb="select"] div[role="button"],
+    div[data-baseweb="select"] div {
+        font-size: 1.6rem !important;
         font-weight: 400 !important;
         color: #FFFFFF !important;
+        line-height: 1.5 !important;
     }
     
-    /* 紅框：純文字輸入框 */
+    /* 🔴 紅框：純文字輸入框 */
     div[data-testid="stTextInput"] input {
-        font-size: 1.5rem !important;
+        font-size: 1.6rem !important;
         font-weight: 400 !important;
         color: #FFFFFF !important;
         height: 50px !important;
     }
     
-    /* 統一所有外框高度 (50px) 與外觀 */
+    /* 統一所有框的外觀與高度 (50px) */
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div {
         background-color: #151A23 !important;
@@ -78,6 +81,8 @@ st.markdown(
         border-radius: 8px !important;
         height: 50px !important;
         min-height: 50px !important;
+        display: flex !important;
+        align-items: center !important;
     }
     
     div[data-baseweb="input"] > div:focus-within, 
