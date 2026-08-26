@@ -1,34 +1,25 @@
 import datetime
 import pandas as pd
 import streamlit as st
+from streamlit_gsheets_connection import GSheetsConnection
 
 # 頁面配置
 st.set_page_config(
     page_title="多商品交易盈虧與歷史紀錄系統", layout="wide"
 )
 
-# 初始化 Session State (修正打字錯誤)
-if "history" not in st.session_state:
-    st.session_state["history"] = pd.DataFrame(
-        columns=[
-            "ID",
-            "開倉時間",
-            "結算時間",
-            "商品",
-            "方向",
-            "手數",
-            "進場價",
-            "出場價",
-            "保證金(USD)",
-            "隔夜利息(USD)",
-            "合約乘數",
-            "盈虧(USD)",
-            "盈虧(TWD)",
-        ]
-    )
+# 建立 Google Sheets 連線
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-if "active_trades" not in st.session_state:
-    st.session_state["active_trades"] = []
+
+# 讀取資料函式
+def load_data(worksheet_name):
+    try:
+        df = conn.read(worksheet=worksheet_name, ttl=0)
+        return df.dropna(how="all")
+    except Exception:
+        return pd.DataFrame()
+
 
 # --- 頂部參數 ---
 st.title("📈 多商品即時盈虧與歷史交易管理系統")
@@ -39,10 +30,14 @@ with col_rate:
 with col_lev:
     leverage = st.number_input("帳戶槓桿倍數", value=100, step=10)
 
+# 讀取歷史資料庫與持倉
+history_df = load_data("history")
+active_df = load_data("active_trades")
+
 # 計算歷史總統計
 total_usd = (
-    st.session_state["history"]["盈虧(USD)"].sum()
-    if not st.session_state["history"].empty
+    history_df["盈虧(USD)"].astype(float).sum()
+    if not history_df.empty and "盈虧(USD)" in history_df.columns
     else 0.0
 )
 total_twd = total_usd * usdtwd
@@ -57,7 +52,6 @@ st.divider()
 # --- 分頁規劃 ---
 tab1, tab2 = st.tabs(["📊 即時持倉與試算", "📜 歷史交易紀錄"])
 
-# 預設合約乘數表
 CONTRACT_SIZES = {
     "XAUUSD": 100,
     "USDJPY": 100000,
@@ -86,10 +80,9 @@ with tab1:
         )
         swap = c7.number_input("隔夜利息 (USD)", value=0.0, step=0.5)
 
-        submit = st.form_submit_button("＋ 新增至持倉列表")
+        submit = st.form_submit_button("＋ 新增至持倉列表 (同步至雲端)")
 
         if submit:
-            # 盈虧與保證金計算邏輯
             if direction == "BUY":
                 pnl_usd = (
                     (exit_price - entry_price) * lots * contract_size
@@ -99,94 +92,98 @@ with tab1:
                 pnl_usd = (
                     (entry_price - exit_price) * lots * contract_size
                 ) + swap
-                margin = (
-                    (entry_price * lots * contract_size) / leverage
-                    if "USD" in symbol[:3]
-                    else (entry_price * lots * contract_size) / leverage
-                )
+                margin = (entry_price * lots * contract_size) / leverage
 
-            trade_item = {
-                "ID": len(st.session_state["history"])
-                + len(st.session_state["active_trades"])
-                + 1,
-                "開倉時間": datetime.datetime.now().strftime(
-                    "%Y-%m-%d %H:%M"
-                ),
-                "商品": symbol,
-                "方向": direction,
-                "手數": lots,
-                "進場價": entry_price,
-                "預估出場價": exit_price,
-                "保證金(USD)": round(margin, 2),
-                "隔夜利息(USD)": swap,
-                "合約乘數": contract_size,
-                "預估盈虧(USD)": round(pnl_usd, 2),
-                "預估盈虧(TWD)": round(pnl_usd * usdtwd, 2),
-            }
-            st.session_state["active_trades"].append(trade_item)
-            st.success("已新增持倉單！")
+            new_trade = pd.DataFrame([
+                {
+                    "ID": len(history_df) + len(active_df) + 1,
+                    "開倉時間": datetime.datetime.now().strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
+                    "商品": symbol,
+                    "方向": direction,
+                    "手數": lots,
+                    "進場價": entry_price,
+                    "預估出場價": exit_price,
+                    "保證金(USD)": round(margin, 2),
+                    "隔夜利息(USD)": swap,
+                    "合約乘數": contract_size,
+                    "預估盈虧(USD)": round(pnl_usd, 2),
+                    "預估盈虧(TWD)": round(pnl_usd * usdtwd, 2),
+                }
+            ])
 
-    st.subheader("當前未平倉單")
-    if st.session_state["active_trades"]:
-        for idx, trade in enumerate(st.session_state["active_trades"]):
+            updated_active = pd.concat(
+                [active_df, new_trade], ignore_index=True
+            )
+            conn.update(worksheet="active_trades", data=updated_active)
+            st.success("已成功同步新增至雲端持倉！")
+            st.rerun()
+
+    st.subheader("當前未平倉單 (雲端同步)")
+    if not active_df.empty:
+        for idx, row in active_df.iterrows():
             with st.expander(
-                f"單號 #{trade['ID']} | {trade['商品']} | {trade['方向']} | 手數: {trade['手數']} | 預估盈虧: ${trade['預估盈虧(USD)']} USD"
+                f"單號 #{row['ID']} | {row['商品']} | {row['方向']} | 手數: {row['手數']} | 預估盈虧: ${row['預估盈虧(USD)']} USD"
             ):
-                st.json(trade)
+                st.write(row.to_dict())
                 final_exit = st.number_input(
-                    f"最終平倉價 (單號 #{trade['ID']})",
-                    value=float(trade["預估出場價"]),
+                    f"最終平倉價 (單號 #{row['ID']})",
+                    value=float(row["預估出場價"]),
                     key=f"exit_{idx}",
                 )
 
-                if st.button(f"✅ 一鍵結算平倉 (單號 #{trade['ID']})"):
-                    # 重新計算最終盈虧
-                    if trade["方向"] == "BUY":
+                if st.button(f"✅ 一鍵結算平倉 (單號 #{row['ID']})"):
+                    if row["方向"] == "BUY":
                         final_pnl = (
-                            (final_exit - trade["進場價"])
-                            * trade["手數"]
-                            * trade["合約乘數"]
-                        ) + trade["隔夜利息(USD)"]
+                            (final_exit - row["進場價"])
+                            * row["手數"]
+                            * row["合約乘數"]
+                        ) + row["隔夜利息(USD)"]
                     else:
                         final_pnl = (
-                            (trade["進場價"] - final_exit)
-                            * trade["手數"]
-                            * trade["合約乘數"]
-                        ) + trade["隔夜利息(USD)"]
+                            (row["進場價"] - final_exit)
+                            * row["手數"]
+                            * row["合約乘數"]
+                        ) + row["隔夜利息(USD)"]
 
-                    # 轉入歷史資料庫
-                    new_history_row = {
-                        "ID": trade["ID"],
-                        "開倉時間": trade["開倉時間"],
-                        "結算時間": datetime.datetime.now().strftime(
-                            "%Y-%m-%d %H:%M"
-                        ),
-                        "商品": trade["商品"],
-                        "方向": trade["方向"],
-                        "手數": trade["手數"],
-                        "進場價": trade["進場價"],
-                        "出場價": final_exit,
-                        "保證金(USD)": trade["保證金(USD)"],
-                        "隔夜利息(USD)": trade["隔夜利息(USD)"],
-                        "合約乘數": trade["合約乘數"],
-                        "盈虧(USD)": round(final_pnl, 2),
-                        "盈虧(TWD)": round(final_pnl * usdtwd, 2),
-                    }
-                    st.session_state["history"] = pd.concat(
-                        [
-                            st.session_state["history"],
-                            pd.DataFrame([new_history_row]),
-                        ],
-                        ignore_index=True,
+                    history_row = pd.DataFrame([
+                        {
+                            "ID": row["ID"],
+                            "開倉時間": row["開倉時間"],
+                            "結算時間": datetime.datetime.now().strftime(
+                                "%Y-%m-%d %H:%M"
+                            ),
+                            "商品": row["商品"],
+                            "方向": row["方向"],
+                            "手數": row["手數"],
+                            "進場價": row["進場價"],
+                            "出場價": final_exit,
+                            "保證金(USD)": row["保證金(USD)"],
+                            "隔夜利息(USD)": row["隔夜利息(USD)"],
+                            "合約乘數": row["合約乘數"],
+                            "盈虧(USD)": round(final_pnl, 2),
+                            "盈虧(TWD)": round(final_pnl * usdtwd, 2),
+                        }
+                    ])
+
+                    # 寫入 history，並從 active_trades 移除
+                    updated_history = pd.concat(
+                        [history_df, history_row], ignore_index=True
                     )
-                    st.session_state["active_trades"].pop(idx)
+                    conn.update(worksheet="history", data=updated_history)
+
+                    updated_active = active_df.drop(idx)
+                    conn.update(worksheet="active_trades", data=updated_active)
+
+                    st.success("平倉成功！資料已永久轉入雲端歷史紀錄。")
                     st.rerun()
     else:
         st.info("目前無未平倉單。")
 
 with tab2:
-    st.subheader("歷史已結算交易日誌")
-    if not st.session_state["history"].empty:
-        st.dataframe(st.session_state["history"], use_container_width=True)
+    st.subheader("歷史已結算交易日誌 (永久保存)")
+    if not history_df.empty:
+        st.dataframe(history_df, use_container_width=True)
     else:
         st.info("尚無歷史結算紀錄。")
