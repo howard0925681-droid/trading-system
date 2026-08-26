@@ -55,11 +55,10 @@ else:
 
 total_usd = 0.0
 if not history_df.empty and "盈虧(USD)" in history_df.columns:
-    total_usd = (
-        pd.to_numeric(history_df["盈虧(USD)"], errors="coerce")
-        .fillna(0)
-        .sum()
+    history_df["盈虧(USD)"] = (
+        pd.to_numeric(history_df["盈虧(USD)"], errors="coerce").fillna(0)
     )
+    total_usd = history_df["盈虧(USD)"].sum()
 
 total_twd = total_usd * usdtwd
 
@@ -125,6 +124,11 @@ with tab1:
     st.info(
         f"**💡 試算結果：** 預佔保證金 `${margin:,.2f}` | 預估虧損 `${risk_usd:,.2f}` | 預估獲利 `${reward_usd:,.2f}` | **風報比 1 : {rr_ratio:.2f}**"
     )
+
+    if rr_ratio < 1.5 and risk_usd > 0:
+        st.warning(
+            "⚠️ 系統警告：此單風報比 (R:R) 低於 1:1.5，請確認是否符合交易紀律！"
+        )
 
     if st.button("＋ 暫存至持倉清單"):
         st.session_state["temp_trades"].append({
@@ -203,8 +207,39 @@ with tab1:
         st.info("目前尚無未平倉單。")
 
 with tab2:
-    st.subheader("雲端與本地歷史紀錄")
-    if not history_df.empty:
+    st.subheader("📊 營運指標與戰術檢討")
+    if not history_df.empty and len(history_df) > 0:
+        # 轉數字確保能計算
+        pnl_series = pd.to_numeric(history_df["盈虧(USD)"], errors="coerce").fillna(0)
+
+        winning_trades = pnl_series[pnl_series > 0]
+        losing_trades = pnl_series[pnl_series < 0]
+
+        win_rate = (len(winning_trades) / len(pnl_series)) * 100 if len(pnl_series) > 0 else 0
+        gross_profit = winning_trades.sum()
+        gross_loss = abs(losing_trades.sum())
+        profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (float("inf") if gross_profit > 0 else 0.0)
+
+        # 計算資金曲線與最大拉回
+        cum_pnl = pnl_series.cumsum()
+        peak = cum_pnl.cummax()
+        drawdown = cum_pnl - peak
+        max_drawdown = abs(drawdown.min()) if not drawdown.empty else 0.0
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("勝率 (Win Rate)", f"{win_rate:.1f}%")
+        m2.metric(
+            "獲利因子 (Profit Factor)",
+            f"{profit_factor:.2f}" if profit_factor != float("inf") else "∞",
+        )
+        m3.metric("最大拉回 (Max Drawdown)", f"${max_drawdown:,.2f} USD")
+
+        st.subheader("📈 資金成長曲線 (USD)")
+        st.line_chart(cum_pnl)
+
+        st.divider()
+
+        st.subheader("📜 歷史已結算交易清單")
         st.dataframe(history_df, use_container_width=True)
     else:
-        st.info("尚無結算歷史紀錄。")
+        st.info("目前尚無歷史結算紀錄，請先完成一筆平倉交易。")
