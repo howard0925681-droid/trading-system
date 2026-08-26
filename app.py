@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. CSS：紅框字體加粗版
+# 2. CSS：紅框字體再加粗 (font-weight: 900) 版
 st.markdown(
     """
 <style>
@@ -68,13 +68,13 @@ st.markdown(
         height: 55px !important;
     }
     
-    /* 4. 🔴 紅框區塊：下拉選單與純文字框（字體 1.75rem + 加粗 700）🔴 */
+    /* 4. 🔴 紅框區塊：下拉選單與純文字框（字體 1.75rem + 再加粗至 900）🔴 */
     div[data-testid="stTextInput"] input,
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div,
     div[data-baseweb="select"] input {
         font-size: 1.75rem !important;
-        font-weight: 700 !important; /* 加粗 */
+        font-weight: 900 !important; /* 再加粗 */
         color: #FFFFFF !important;
     }
 
