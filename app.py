@@ -38,7 +38,7 @@ def load_data(sheet_name):
 
 
 # --- 頂部參數 ---
-st.title("📈 FX & Gold Tracker | 交易風控與紀錄系統")
+st.title("📈 FX & Gold Tracker")
 
 if not SHEET_ID:
     st.error(
