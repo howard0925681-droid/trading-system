@@ -11,11 +11,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. 專業交易員極致暗黑 CSS (已修正卡片滿版比例)
+# 2. 專業交易員大字清晰版 CSS
 st.markdown(
     """
 <style>
-    /* 全局背景與字體 */
+    /* 全局背景與字體大小提升 */
     .stApp {
         background-color: #0B0E14 !important;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -30,62 +30,74 @@ st.markdown(
         margin-bottom: 2px;
     }
     .main-title {
-        font-size: 2.2rem;
-        font-weight: 800;
+        font-size: 2.6rem;
+        font-weight: 900;
         letter-spacing: -0.5px;
         background: linear-gradient(90deg, #00F2FE 0%, #4FACFE 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
     
-    /* 表單輸入框精細化 (Input Fields) */
+    /* 所有表單輸入框標籤 (Labels) 加大加粗 */
+    div[data-testid="stMarkdownContainer"] p, label[data-testid="stWidgetLabel"] p {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        color: #CBD5E1 !important;
+    }
+    
+    /* 表單輸入框內容 (Input Values) 加大 */
+    div[data-baseweb="input"] input, div[data-baseweb="select"] div {
+        font-size: 1.15rem !important;
+        font-weight: 600 !important;
+        color: #FFFFFF !important;
+    }
     div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
         background-color: #151A23 !important;
-        border: 1px solid #2A3241 !important;
+        border: 1.5px solid #2A3241 !important;
         border-radius: 8px !important;
-        color: #E2E8F0 !important;
+        padding: 4px 6px !important;
     }
     div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
         border-color: #00F2FE !important;
-        box-shadow: 0 0 8px rgba(0, 242, 254, 0.25) !important;
+        box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
     }
     
-    /* KPI 頂部卡片 */
+    /* KPI 頂部卡片加大 */
     div[data-testid="stMetric"] {
         background: linear-gradient(145deg, #131822 0%, #171D2A 100%);
-        border: 1px solid #232D3F;
-        padding: 16px 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        border: 1.5px solid #232D3F;
+        padding: 20px 24px;
+        border-radius: 14px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
     }
     div[data-testid="stMetricLabel"] {
-        color: #7A899B !important;
-        font-size: 0.8rem !important;
+        color: #94A3B8 !important;
+        font-size: 0.95rem !important;
         font-weight: 700 !important;
         letter-spacing: 0.8px;
     }
     div[data-testid="stMetricValue"] {
         color: #00F2FE !important;
-        font-size: 1.75rem !important;
-        font-weight: 800 !important;
+        font-size: 2.2rem !important;
+        font-weight: 900 !important;
     }
 
-    /* 酷炫風控試算面板卡片 (修正為滿版平均置中) */
+    /* 酷炫風控試算面板卡片 (大字清析版) */
     .risk-card {
         background: linear-gradient(135deg, #111622 0%, #172030 100%);
-        border: 1px solid #222F43;
-        border-left: 5px solid #00F2FE;
+        border: 1.5px solid #222F43;
+        border-left: 6px solid #00F2FE;
         border-radius: 12px;
-        padding: 20px 24px;
-        margin: 20px 0;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        padding: 22px 28px;
+        margin: 22px 0;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     }
     .risk-grid {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 16px;
-        margin-top: 15px;
+        gap: 18px;
+        margin-top: 16px;
         width: 100%;
     }
     .risk-item {
@@ -94,31 +106,31 @@ st.markdown(
         flex-direction: column;
         align-items: center;
         text-align: center;
-        padding: 12px 8px;
+        padding: 14px 10px;
         background: rgba(255, 255, 255, 0.03);
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
     }
     .risk-label {
-        color: #7A899B;
-        font-size: 0.8rem;
-        font-weight: 600;
+        color: #94A3B8;
+        font-size: 0.95rem;
+        font-weight: 700;
         text-transform: uppercase;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
     .risk-value {
-        font-size: 1.35rem;
-        font-weight: 800;
+        font-size: 1.6rem;
+        font-weight: 900;
     }
     .rr-badge {
         display: inline-block;
-        padding: 4px 14px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 1.1rem;
+        padding: 6px 18px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 1.3rem;
     }
-    .rr-good { background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; }
-    .rr-bad { background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid #EF4444; }
+    .rr-good { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1.5px solid #10B981; }
+    .rr-bad { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1.5px solid #EF4444; }
 
     /* 按鈕 (Main Submit Button) */
     .stButton>button {
@@ -126,17 +138,31 @@ st.markdown(
         background: linear-gradient(90deg, #0052D4 0%, #4364F7 51%, #6FB1FC 100%);
         color: #FFFFFF !important;
         border: none;
-        padding: 12px 24px;
-        font-size: 1rem;
-        font-weight: 700;
-        border-radius: 8px;
+        padding: 14px 28px;
+        font-size: 1.15rem;
+        font-weight: 800;
+        border-radius: 10px;
         letter-spacing: 0.5px;
-        box-shadow: 0 4px 15px rgba(67, 100, 247, 0.35);
+        box-shadow: 0 4px 18px rgba(67, 100, 247, 0.4);
         transition: all 0.25s ease;
     }
     .stButton>button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 22px rgba(67, 100, 247, 0.5);
+        box-shadow: 0 6px 25px rgba(67, 100, 247, 0.6);
+    }
+    
+    /* Tab 分頁標題加大 */
+    button[data-baseweb="tab"] {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+        padding: 12px 24px !important;
+    }
+    
+    /* 次標題加大 */
+    .stMarkdown h3 {
+        font-size: 1.45rem !important;
+        font-weight: 800 !important;
+        color: #F8FAFC !important;
     }
 </style>
 """,
@@ -269,12 +295,12 @@ with tab1:
     )
     rr_ratio = (reward_per_unit / risk_per_unit) if risk_per_unit > 0 else 0
 
-    # 渲染滿版等分均勻風控面板
+    # 渲染大字版風控面板
     rr_class = "rr-good" if rr_ratio >= 1.5 else "rr-bad"
     st.markdown(
         f"""
     <div class="risk-card">
-        <div style="font-weight: 700; color: #94A3B8; font-size: 0.85rem; text-transform: uppercase; text-align: center; letter-spacing: 1px;">💡 即時風控試算面板</div>
+        <div style="font-weight: 800; color: #94A3B8; font-size: 1.05rem; text-transform: uppercase; text-align: center; letter-spacing: 1px;">💡 即時風控試算面板</div>
         <div class="risk-grid">
             <div class="risk-item">
                 <span class="risk-label">預佔保證金</span>
