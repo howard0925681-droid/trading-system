@@ -6,113 +6,128 @@ import streamlit as st
 # 1. 頁面配置
 st.set_page_config(
     page_title="FX & Gold Tracker Pro",
-    page_icon="📈",
+    page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# 2. 自訂高質感 CSS 樣式
+# 2. 專業交易員極致暗黑 CSS
 st.markdown(
     """
 <style>
-    /* 全局背景與字體優化 */
+    /* 全局背景與字體 */
     .stApp {
-        background-color: #0e1117;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #0B0E14 !important;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
+    header[data-testid="stHeader"] { background: transparent; }
     
-    /* 隱藏預設頁眉與選單多餘邊框 */
-    header[data-testid="stHeader"] {
-        background: transparent;
+    /* 頂部標題與 Logo */
+    .title-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 2px;
     }
-    
-    /* 標題美化 */
     .main-title {
         font-size: 2.2rem;
         font-weight: 800;
-        background: linear-gradient(90deg, #4FACFE 0%, #00F2FE 100%);
+        letter-spacing: -0.5px;
+        background: linear-gradient(90deg, #00F2FE 0%, #4FACFE 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
     }
     
-    /* KPI 數據卡片美化 */
-    div[data-testid="stMetric"] {
-        background: #161b22;
-        border: 1px solid #30363d;
-        padding: 18px 22px;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        transition: transform 0.2s ease, border-color 0.2s ease;
+    /* 表單輸入框精細化 (Input Fields) */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div {
+        background-color: #151A23 !important;
+        border: 1px solid #2A3241 !important;
+        border-radius: 8px !important;
+        color: #E2E8F0 !important;
     }
-    div[data-testid="stMetric"]:hover {
-        transform: translateY(-2px);
-        border-color: #58a6ff;
+    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="select"] > div:focus-within {
+        border-color: #00F2FE !important;
+        box-shadow: 0 0 8px rgba(0, 242, 254, 0.25) !important;
+    }
+    
+    /* KPI 頂部卡片 */
+    div[data-testid="stMetric"] {
+        background: linear-gradient(145deg, #131822 0%, #171D2A 100%);
+        border: 1px solid #232D3F;
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     }
     div[data-testid="stMetricLabel"] {
-        color: #8b949e !important;
-        font-size: 0.85rem !important;
-        font-weight: 600 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        color: #7A899B !important;
+        font-size: 0.8rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.8px;
     }
     div[data-testid="stMetricValue"] {
-        color: #58a6ff !important;
-        font-size: 1.8rem !important;
-        font-weight: 700 !important;
+        color: #00F2FE !important;
+        font-size: 1.75rem !important;
+        font-weight: 800 !important;
     }
-    
-    /* 按鈕美化 */
+
+    /* 酷炫風控試算面板卡片 */
+    .risk-card {
+        background: linear-gradient(135deg, #111622 0%, #172030 100%);
+        border: 1px solid #222F43;
+        border-left: 5px solid #00F2FE;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin: 15px 0;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+    .risk-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 15px;
+        margin-top: 10px;
+    }
+    .risk-item {
+        display: flex;
+        flex-direction: column;
+    }
+    .risk-label {
+        color: #64748B;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .risk-value {
+        color: #F8FAFC;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+    .rr-badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+    .rr-good { background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; }
+    .rr-bad { background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid #EF4444; }
+
+    /* 按鈕 (Main Submit Button) */
     .stButton>button {
         width: 100%;
-        background: linear-gradient(135deg, #1f6feb 0%, #1158c7 100%);
-        color: #ffffff !important;
+        background: linear-gradient(90deg, #0052D4 0%, #4364F7 51%, #6FB1FC 100%);
+        color: #FFFFFF !important;
         border: none;
-        padding: 10px 20px;
-        font-size: 0.95rem;
-        font-weight: 600;
+        padding: 12px 24px;
+        font-size: 1rem;
+        font-weight: 700;
         border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(31, 111, 235, 0.3);
-        transition: all 0.2s ease;
+        letter-spacing: 0.5px;
+        box-shadow: 0 4px 15px rgba(67, 100, 247, 0.35);
+        transition: all 0.25s ease;
     }
     .stButton>button:hover {
-        background: linear-gradient(135deg, #388bfd 0%, #1f6feb 100%);
-        box-shadow: 0 4px 15px rgba(56, 139, 253, 0.4);
-        transform: translateY(-1px);
-    }
-    
-    /* 折疊卡片 (Expander) 美化 */
-    .streamlit-expanderHeader {
-        background-color: #161b22 !important;
-        border-radius: 8px !important;
-        border: 1px solid #30363d !important;
-        color: #c9d1d9 !important;
-        font-weight: 600 !important;
-    }
-    .streamlit-expanderContent {
-        background-color: #0d1117 !important;
-        border: 1px solid #30363d !important;
-        border-top: none !important;
-        border-bottom-left-radius: 8px !important;
-        border-bottom-right-radius: 8px !important;
-    }
-    
-    /* Tab 頁籤標題美化 */
-    button[data-baseweb="tab"] {
-        font-size: 1rem !important;
-        font-weight: 600 !important;
-        color: #8b949e !important;
-        padding: 10px 20px !important;
-    }
-    button[aria-selected="true"] {
-        color: #58a6ff !important;
-        border-bottom-color: #58a6ff !important;
-    }
-    
-    /* 提示訊息框美化 */
-    .stAlert {
-        border-radius: 10px !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 22px rgba(67, 100, 247, 0.5);
     }
 </style>
 """,
@@ -120,7 +135,6 @@ st.markdown(
 )
 
 
-# 從 Secrets 取得 Google 試算表 ID
 def get_sheet_id():
     try:
         url = st.secrets["connections"]["gsheets"]["spreadsheet"]
@@ -143,9 +157,13 @@ def load_data(sheet_name):
         return pd.DataFrame()
 
 
-# --- 頂部區域 ---
+# --- Header 區域 ---
 st.markdown(
-    '<div class="main-title">📈 FX & Gold Tracker Pro</div>',
+    """
+<div class="title-container">
+    <span class="main-title">⚡ FX & Gold Tracker Pro</span>
+</div>
+""",
     unsafe_allow_html=True,
 )
 st.caption("專業交易員風控試算與戰術檢討儀表板")
@@ -156,13 +174,11 @@ with col_rate:
 with col_lev:
     leverage = st.number_input("帳戶槓桿倍數", value=100, step=10)
 
-# 初始化 Session State
 if "history_list" not in st.session_state:
     st.session_state["history_list"] = []
 if "temp_trades" not in st.session_state:
     st.session_state["temp_trades"] = []
 
-# 讀取雲端與本地資料
 cloud_history = load_data("history")
 local_history = pd.DataFrame(st.session_state["history_list"])
 
@@ -189,7 +205,7 @@ with col_pnl_twd:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- 主功能 Tabs ---
+# --- 主 Tabs ---
 tab1, tab2 = st.tabs(["📊 即時持倉與風控試算", "📜 歷史紀錄與績效分析"])
 
 CONTRACT_SIZES = {
@@ -226,7 +242,7 @@ with tab1:
     )
     notes = c10.text_input("備註 (交易心態/進場條件)")
 
-    # 風險計算
+    # 動態風控試算
     if direction == "BUY":
         risk_per_unit = entry_price - stop_loss
         reward_per_unit = exit_price - entry_price
@@ -244,8 +260,33 @@ with tab1:
     )
     rr_ratio = (reward_per_unit / risk_per_unit) if risk_per_unit > 0 else 0
 
-    st.info(
-        f"**💡 風控試算卡：** 預佔保證金 `${margin:,.2f}` | 預估風險 `${risk_usd:,.2f}` | 預估獲利 `${reward_usd:,.2f}` | **風報比 1 : {rr_ratio:.2f}**"
+    # 渲染自訂高顏值風控卡片
+    rr_class = "rr-good" if rr_ratio >= 1.5 else "rr-bad"
+    st.markdown(
+        f"""
+    <div class="risk-card">
+        <div style="font-weight: 700; color: #94A3B8; font-size: 0.85rem; text-transform: uppercase;">💡 即時風控試算面板</div>
+        <div class="risk-grid">
+            <div class="risk-item">
+                <span class="risk-label">預佔保證金</span>
+                <span class="risk-value">${margin:,.2f}</span>
+            </div>
+            <div class="risk-item">
+                <span class="risk-label">預估最大虧損</span>
+                <span class="risk-value" style="color: #EF4444;">-${risk_usd:,.2f}</span>
+            </div>
+            <div class="risk-item">
+                <span class="risk-label">預估目標獲利</span>
+                <span class="risk-value" style="color: #10B981;">+${reward_usd:,.2f}</span>
+            </div>
+            <div class="risk-item">
+                <span class="risk-label">風報比 (R:R)</span>
+                <div><span class="rr-badge {rr_class}">1 : {rr_ratio:.2f}</span></div>
+            </div>
+        </div>
+    </div>
+    """,
+        unsafe_allow_html=True,
     )
 
     if rr_ratio < 1.5 and risk_usd > 0:
@@ -253,7 +294,7 @@ with tab1:
             "⚠️ **交易紀律提醒：** 當前風報比低於 1:1.5，請評估是否符合系統進場條件！"
         )
 
-    if st.button("＋ 暫存至未平倉持倉清單"):
+    if st.button("🚀 暫存至未平倉持倉清單"):
         st.session_state["temp_trades"].append({
             "ID": len(st.session_state["temp_trades"]) + 1,
             "開倉時間": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -279,8 +320,9 @@ with tab1:
 
     if st.session_state["temp_trades"]:
         for idx, item in enumerate(st.session_state["temp_trades"]):
+            dir_color = "🟢" if item["方向"] == "BUY" else "🔴"
             with st.expander(
-                f"單號 #{item['ID']} | {item['商品']} {item['方向']} | 手數: {item['手數']} | 策略: {item['策略']}"
+                f"{dir_color} 單號 #{item['ID']} | {item['商品']} {item['方向']} | 手數: {item['手數']} | 策略: {item['策略']}"
             ):
                 st.write(item)
                 final_exit = st.number_input(
