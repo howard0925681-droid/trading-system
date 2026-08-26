@@ -11,18 +11,16 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 2. CSS：紅框字體再加粗 (font-weight: 900) 版
+# 2. CSS 樣式設定
 st.markdown(
     """
 <style>
-    /* 全局背景 */
     .stApp {
         background-color: #0B0E14 !important;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
     header[data-testid="stHeader"] { background: transparent; }
     
-    /* 頂部標題 */
     .title-container {
         display: flex;
         align-items: center;
@@ -38,14 +36,12 @@ st.markdown(
         -webkit-text-fill-color: transparent;
     }
     
-    /* 1. 小標題 (Labels) 大小與粗細 */
     div[data-testid="stMarkdownContainer"] p, label[data-testid="stWidgetLabel"] p {
         font-size: 1.15rem !important;
         font-weight: 800 !important;
         color: #E2E8F0 !important;
     }
     
-    /* 2. 統一外框底色與邊框 */
     div[data-baseweb="input"] > div, 
     div[data-baseweb="select"] > div {
         background-color: #151A23 !important;
@@ -60,7 +56,6 @@ st.markdown(
         box-shadow: 0 0 10px rgba(0, 242, 254, 0.3) !important;
     }
 
-    /* 3. 數字輸入框 (藍框) */
     div[data-testid="stNumberInput"] input {
         font-size: 1.25rem !important;
         font-weight: 500 !important;
@@ -68,17 +63,15 @@ st.markdown(
         height: 55px !important;
     }
     
-    /* 4. 🔴 紅框區塊：下拉選單與純文字框（字體 1.75rem + 再加粗至 900）🔴 */
     div[data-testid="stTextInput"] input,
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div,
     div[data-baseweb="select"] input {
         font-size: 1.75rem !important;
-        font-weight: 900 !important; /* 再加粗 */
+        font-weight: 900 !important;
         color: #FFFFFF !important;
     }
 
-    /* KPI 頂部卡片 */
     div[data-testid="stMetric"] {
         background: linear-gradient(145deg, #131822 0%, #171D2A 100%);
         border: 1.5px solid #232D3F;
@@ -98,7 +91,6 @@ st.markdown(
         font-weight: 900 !important;
     }
 
-    /* 酷炫風控試算面板卡片 */
     .risk-card {
         background: linear-gradient(135deg, #111622 0%, #172030 100%);
         border: 1.5px solid #222F43;
@@ -148,7 +140,6 @@ st.markdown(
     .rr-good { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1.5px solid #10B981; }
     .rr-bad { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1.5px solid #EF4444; }
 
-    /* 按鈕 (Main Submit Button) */
     .stButton>button {
         width: 100%;
         background: linear-gradient(90deg, #0052D4 0%, #4364F7 51%, #6FB1FC 100%);
@@ -167,14 +158,12 @@ st.markdown(
         box-shadow: 0 6px 25px rgba(67, 100, 247, 0.6);
     }
     
-    /* Tab 分頁標題 */
     button[data-baseweb="tab"] {
         font-size: 1.2rem !important;
         font-weight: 800 !important;
         padding: 12px 24px !important;
     }
     
-    /* 次標題 */
     .stMarkdown h3 {
         font-size: 1.5rem !important;
         font-weight: 800 !important;
@@ -279,11 +268,11 @@ with tab1:
     )
 
     c5, c6, c7, c8 = st.columns(4)
-    entry_price = c5.number_input("進場價位", value=2600.00, format="%.2f")
+    entry_price = c5.number_input("進場價位", value=158.93, format="%.2f")
     exit_price = c6.number_input(
-        "預期止盈 (TP)", value=2620.00, format="%.2f"
+        "預期止盈 (TP)", value=158.20, format="%.2f"
     )
-    stop_loss = c7.number_input("預定止損 (SL)", value=2590.00, format="%.2f")
+    stop_loss = c7.number_input("預定止損 (SL)", value=159.45, format="%.2f")
     swap = c8.number_input("隔夜利息 (USD)", value=0.0, step=0.5)
 
     c9, c10 = st.columns([1, 2])
@@ -293,23 +282,35 @@ with tab1:
     )
     notes = c10.text_input("備註 (交易心態/進場條件)")
 
-    # 動態風控試算
+    # 🧮 修正後的正確金融風控計算核心 🧮
     if direction == "BUY":
-        risk_per_unit = entry_price - stop_loss
-        reward_per_unit = exit_price - entry_price
-        margin = (entry_price * lots * contract_size) / leverage
+        risk_points = entry_price - stop_loss
+        reward_points = exit_price - entry_price
     else:
-        risk_per_unit = stop_loss - entry_price
-        reward_per_unit = entry_price - exit_price
-        margin = (entry_price * lots * contract_size) / leverage
+        risk_points = stop_loss - entry_price
+        reward_points = entry_price - exit_price
 
-    risk_usd = (
-        risk_per_unit * lots * contract_size if risk_per_unit > 0 else 0
-    )
-    reward_usd = (
-        reward_per_unit * lots * contract_size if reward_per_unit > 0 else 0
-    )
-    rr_ratio = (reward_per_unit / risk_per_unit) if risk_per_unit > 0 else 0
+    risk_points = max(0.0, risk_points)
+    reward_points = max(0.0, reward_points)
+
+    if symbol == "USDJPY":
+        # USDJPY: 基礎貨幣為 USD，保證金 = 手數 * 合約大小 / 槓桿
+        margin = (lots * contract_size) / leverage
+        # 盈虧計價貨幣為 JPY，需除以進場匯率轉為 USD
+        risk_usd = (risk_points * lots * contract_size) / entry_price
+        reward_usd = (reward_points * lots * contract_size) / entry_price
+    elif symbol == "XAUUSD":
+        # 黃金: 1點就是 $1 USD
+        margin = (entry_price * lots * contract_size) / leverage
+        risk_usd = risk_points * lots * contract_size
+        reward_usd = reward_points * lots * contract_size
+    else:
+        # 其他外匯對 (如 EURUSD, GBPUSD 等)
+        margin = (entry_price * lots * contract_size) / leverage
+        risk_usd = risk_points * lots * contract_size
+        reward_usd = reward_points * lots * contract_size
+
+    rr_ratio = (reward_points / risk_points) if risk_points > 0 else 0
 
     # 渲染風控面板
     rr_class = "rr-good" if rr_ratio >= 1.5 else "rr-bad"
@@ -386,16 +387,18 @@ with tab1:
                     f"✅ 結算平倉轉入歷史 (單號 #{item['ID']})", key=f"btn_{idx}"
                 ):
                     if item["方向"] == "BUY":
+                        diff = final_exit - item["進場價"]
+                    else:
+                        diff = item["進場價"] - final_exit
+
+                    if item["商品"] == "USDJPY":
                         final_pnl = (
-                            (final_exit - item["進場價"])
-                            * item["手數"]
-                            * item["合約乘數"]
+                            (diff * item["手數"] * item["合約乘數"])
+                            / final_exit
                         ) + item["隔夜利息(USD)"]
                     else:
                         final_pnl = (
-                            (item["進場價"] - final_exit)
-                            * item["手數"]
-                            * item["合約乘數"]
+                            diff * item["手數"] * item["合約乘數"]
                         ) + item["隔夜利息(USD)"]
 
                     st.session_state["history_list"].append({
