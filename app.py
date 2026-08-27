@@ -1,6 +1,4 @@
 import datetime
-import threading
-import urllib.parse
 import pandas as pd
 import requests
 import streamlit as st
@@ -188,35 +186,58 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-@st.cache_data(ttl=5) # 5秒快取，防止重複讀取
+
+@st.cache_data(ttl=5)  # 5秒快取，防止重複讀取
 def load_data(sheet_name):
     if not SHEET_ID:
         return pd.DataFrame()
     try:
         timestamp = datetime.datetime.now().timestamp()
-        csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={urllib.parse.quote(sheet_name)}&t={timestamp}"
+        csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}&t={timestamp}"
         df = pd.read_csv(csv_url)
-        
-        # 若讀取到 HTML，代表沒有成功發布到網路
+
+        # 若讀取到 HTML，代表沒有成功發布到網路 / 沒有公開檢視權限
         if not df.empty and df.columns[0].startswith('<'):
-            st.error(f"⚠️ 無法讀取資料，請確認 Google Sheet 已設定『發布到網路』。")
+            st.error("⚠️ 無法讀取資料，請確認 Google Sheet 的共用權限已設為「知道連結的任何人」可檢視。")
             return pd.DataFrame()
-            
+
         return df.fillna("")
     except Exception as e:
         st.error(f"讀取雲端資料發生錯誤: {e}")
         return pd.DataFrame()
 
-def _post_request(payload):
-    try:
-        requests.post(GAS_WEBAPP_URL, json=payload, timeout=8)
-    except Exception:
-        pass
 
-def sync_to_cloud_async(payload):
-    if "script.google.com" in GAS_WEBAPP_URL:
-        t = threading.Thread(target=_post_request, args=(payload,))
-        t.start()
+def sync_to_cloud(payload):
+    """
+    同步寫入雲端 Google Sheet，並「等待」寫入完成才回傳結果。
+    改為同步等待是關鍵修正：避免寫入還沒完成，畫面就先重整、
+    讀到舊的雲端資料，導致剛新增的單子被覆蓋消失（雖然 Sheet 裡其實已經寫入成功）。
+    """
+    if "script.google.com" not in GAS_WEBAPP_URL:
+        return False, "尚未設定有效的 GAS_WEBAPP_URL"
+    try:
+        resp = requests.post(GAS_WEBAPP_URL, json=payload, timeout=20)
+        resp.raise_for_status()
+        return True, resp.text
+    except Exception as e:
+        return False, str(e)
+
+
+def merge_cloud_and_local(cloud_df, local_list, id_col="ID"):
+    """
+    以雲端資料為主，但保留「本機有、雲端還沒出現」的資料列。
+    這是為了因應 Google Sheet 讀取端可能有幾秒延遲（gviz 快取 / GAS 執行時間），
+    避免使用者剛新增的單子在下一次重整時，因為雲端還沒更新完畢而被誤判成不存在。
+    一旦雲端資料出現同樣的 ID，本機暫存的那筆就會被雲端版本自然取代（不會重複）。
+    """
+    cloud_records = []
+    cloud_ids = set()
+    if not cloud_df.empty and id_col in cloud_df.columns:
+        cloud_records = cloud_df.to_dict(orient="records")
+        cloud_ids = {str(r.get(id_col)) for r in cloud_records}
+
+    local_only = [t for t in local_list if str(t.get(id_col)) not in cloud_ids]
+    return cloud_records + local_only
 
 
 # --- Header 區域 ---
@@ -239,17 +260,22 @@ with col_lev:
 cloud_active = load_data("active")
 cloud_history = load_data("history")
 
-# 永遠將雲端資料作為最優先，確保 F5 重整不遺失
-if not cloud_active.empty and "ID" in cloud_active.columns:
-    st.session_state["active_trades"] = cloud_active.to_dict(orient="records")
-elif "active_trades" not in st.session_state:
+if "active_trades" not in st.session_state:
     st.session_state["active_trades"] = []
+if "history_list" not in st.session_state:
+    st.session_state["history_list"] = []
+
+# 合併雲端 + 本機資料，而不是無條件用雲端整個蓋掉本機
+st.session_state["active_trades"] = merge_cloud_and_local(
+    cloud_active, st.session_state["active_trades"], id_col="ID"
+)
 
 if not cloud_history.empty and "盈虧(USD)" in cloud_history.columns:
-    history_df = cloud_history
+    history_records = merge_cloud_and_local(
+        cloud_history, st.session_state["history_list"], id_col="ID"
+    )
+    history_df = pd.DataFrame(history_records) if history_records else cloud_history
 else:
-    if "history_list" not in st.session_state:
-        st.session_state["history_list"] = []
     history_df = pd.DataFrame(st.session_state["history_list"])
 
 total_usd = 0.0
@@ -388,8 +414,6 @@ with tab1:
             "預估盈虧(TWD)": float(round((reward_usd + swap) * usdtwd, 2)),
         }
 
-        st.session_state["active_trades"].append(trade_item)
-
         sync_payload = {
             "action": "add",
             "sheet": "active",
@@ -409,11 +433,18 @@ with tab1:
             "pnl_usd": trade_item["預估盈虧(USD)"],
             "pnl_twd": trade_item["預估盈虧(TWD)"],
         }
-        sync_to_cloud_async(sync_payload)
-        
-        load_data.clear() # 清除快取，強迫下次重整抓新資料
-        st.success("成功加入持倉清單！")
-        st.rerun()
+
+        with st.spinner("正在寫入雲端資料庫，請稍候..."):
+            ok, msg = sync_to_cloud(sync_payload)
+
+        if ok:
+            # 寫入成功才加入本機清單，避免顯示假象
+            st.session_state["active_trades"].append(trade_item)
+            load_data.clear()
+            st.success("成功加入持倉清單，並已同步雲端！")
+            st.rerun()
+        else:
+            st.error(f"⚠️ 雲端同步失敗，尚未加入清單。請確認 GAS 部署網址是否有效，並重試。錯誤訊息：{msg}")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📌 當前未平倉試算單")
@@ -483,19 +514,24 @@ with tab1:
                         "pnl_usd": round(final_pnl, 2),
                         "pnl_twd": round(final_pnl * usdtwd, 2),
                     }
-                    
-                    if "history_list" not in st.session_state:
-                        st.session_state["history_list"] = []
-                    st.session_state["history_list"].append(history_item)
 
-                    # 本機刪除 active_trades，寫入雲端 history 並從雲端 active 刪除
-                    st.session_state["active_trades"].pop(idx)
-                    sync_to_cloud_async(history_item)
-                    sync_to_cloud_async({"action": "delete", "sheet": "active", "id": item_id})
+                    with st.spinner("正在同步平倉結果至雲端，請稍候..."):
+                        ok_add, msg_add = sync_to_cloud(history_item)
+                        ok_del, msg_del = sync_to_cloud(
+                            {"action": "delete", "sheet": "active", "id": item_id}
+                        )
 
-                    load_data.clear()
-                    st.success("平倉成功！已移至歷史紀錄。")
-                    st.rerun()
+                    if ok_add and ok_del:
+                        st.session_state["history_list"].append(history_item)
+                        st.session_state["active_trades"].pop(idx)
+                        load_data.clear()
+                        st.success("平倉成功！已移至歷史紀錄。")
+                        st.rerun()
+                    else:
+                        detail = []
+                        detail.append("新增歷史紀錄: " + ("成功" if ok_add else f"失敗 ({msg_add})"))
+                        detail.append("刪除持倉單: " + ("成功" if ok_del else f"失敗 ({msg_del})"))
+                        st.error("⚠️ 雲端同步發生問題，尚未變更清單，請重新嘗試：\n" + "\n".join(detail))
     else:
         st.info("目前尚無未平倉持倉單。")
 
