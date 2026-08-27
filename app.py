@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # 🔗 Google Apps Script 網址 (負責寫入) 🔗
-GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kwg0FB28E2g-_NifDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
+GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kWgOFB28E2g-_NIfDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
 
 # 🔗 Google Sheet ID (負責讀取) 🔗
 SHEET_ID = "1qyl3Q2ElQPQSvD2Ozl8NNhbQeYa1zqre2muKTGt1RZ4"
