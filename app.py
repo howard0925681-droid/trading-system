@@ -1,4 +1,5 @@
 import datetime
+import threading
 import urllib.parse
 import pandas as pd
 import requests
@@ -12,8 +13,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# 🔗 請貼上你部署好的 Google Apps Script 網址 🔗
-GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kWgOFB28E2g-_NIfDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
+# 🔗 Google Apps Script 網址 (負責寫入) 🔗
+GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kwg0FB28E2g-_NifDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
+
+# 🔗 Google Sheet ID (負責讀取) 🔗
+SHEET_ID = "1qyl3Q2ElQPQSvD2Ozl8NNhbQeYa1zqre2muKTGt1RZ4"
 
 # 2. CSS 樣式設定
 st.markdown(
@@ -184,18 +188,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
-def get_sheet_id():
-    try:
-        url = st.secrets["connections"]["gsheets"]["spreadsheet"]
-        return url.split("/d/")[1].split("/")[0] if "/d/" in url else None
-    except Exception:
-        return None
-
-
-SHEET_ID = get_sheet_id()
-
-
 def load_data(sheet_name):
     if not SHEET_ID:
         return pd.DataFrame()
@@ -204,23 +196,20 @@ def load_data(sheet_name):
         csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={urllib.parse.quote(sheet_name)}&t={timestamp}"
         df = pd.read_csv(csv_url)
         return df.fillna("")
-    except Exception:
+    except Exception as e:
         return pd.DataFrame()
 
+def _post_request(payload):
+    try:
+        requests.post(GAS_WEBAPP_URL, json=payload, timeout=8)
+    except Exception:
+        pass
 
-def sync_to_cloud(payload):
+def sync_to_cloud_async(payload):
+    """背景線程寫入，保證網頁不卡死"""
     if "script.google.com" in GAS_WEBAPP_URL:
-        try:
-            res = requests.post(GAS_WEBAPP_URL, json=payload, timeout=8)
-            if res.status_code == 200:
-                return True
-            else:
-                st.error(f"⚠️ 雲端寫入回應狀態碼: {res.status_code}")
-                return False
-        except Exception as e:
-            st.error(f"⚠️ 無法同步至 Google Sheet，原因: {e}")
-            return False
-    return False
+        t = threading.Thread(target=_post_request, args=(payload,))
+        t.start()
 
 
 # --- Header 區域 ---
@@ -242,6 +231,13 @@ with col_lev:
 
 cloud_active = load_data("active")
 cloud_history = load_data("history")
+
+# 初始化 Session 狀態 (記憶體)
+if "active_trades" not in st.session_state:
+    st.session_state["active_trades"] = []
+    # 如果初次進入網頁，嘗試從雲端讀取資料
+    if not cloud_active.empty and "ID" in cloud_active.columns:
+        st.session_state["active_trades"] = cloud_active.to_dict(orient="records")
 
 if "history_list" not in st.session_state:
     st.session_state["history_list"] = []
@@ -369,42 +365,62 @@ with tab1:
         )
 
     if st.button("🚀 暫存至未平倉持倉清單"):
+        # 計算新 ID
         new_id = 1
-        if not cloud_active.empty and "ID" in cloud_active.columns:
-            valid_ids = pd.to_numeric(cloud_active["ID"], errors="coerce").dropna()
-            if not valid_ids.empty:
-                new_id = int(valid_ids.max()) + 1
+        if st.session_state["active_trades"]:
+            new_id = max([int(t.get("ID", 0)) for t in st.session_state["active_trades"]]) + 1
 
-        trade_data = {
-            "action": "add",
-            "id": int(new_id),
-            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "symbol": symbol,
-            "direction": direction,
-            "lots": float(lots),
-            "entry": float(entry_price),
-            "sl": float(stop_loss),
-            "tp": float(exit_price),
-            "strategy": strategy,
-            "notes": str(notes),
-            "margin": float(round(margin, 2)),
-            "swap": float(swap),
-            "contract": float(contract_size),
-            "pnl_usd": float(round(reward_usd + swap, 2)),
-            "pnl_twd": float(round((reward_usd + swap) * usdtwd, 2)),
+        trade_item = {
+            "ID": new_id,
+            "開倉時間": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "商品": symbol,
+            "方向": direction,
+            "手數": float(lots),
+            "進場價": float(entry_price),
+            "預定止損價": float(stop_loss),
+            "預估出場價": float(exit_price),
+            "策略": strategy,
+            "備註": str(notes),
+            "保證金(USD)": float(round(margin, 2)),
+            "隔夜利息(USD)": float(swap),
+            "合約乘數": float(contract_size),
+            "預估盈虧(USD)": float(round(reward_usd + swap, 2)),
+            "預估盈虧(TWD)": float(round((reward_usd + swap) * usdtwd, 2)),
         }
 
-        # 優先寫入雲端 Google Sheet，成功後才刷頁面
-        if sync_to_cloud(trade_data):
-            st.success("✅ 已成功同步存入 Google Sheet！")
-            st.rerun()
+        # 1. 瞬間存入本機記憶體，保證點擊立刻有反應
+        st.session_state["active_trades"].append(trade_item)
+
+        # 2. 異步傳送至 Google Sheet (不卡網頁)
+        sync_payload = {
+            "action": "add",
+            "id": new_id,
+            "time": trade_item["開倉時間"],
+            "symbol": symbol,
+            "direction": direction,
+            "lots": trade_item["手數"],
+            "entry": trade_item["進場價"],
+            "sl": trade_item["預定止損價"],
+            "tp": trade_item["預估出場價"],
+            "strategy": strategy,
+            "notes": trade_item["備註"],
+            "margin": trade_item["保證金(USD)"],
+            "swap": trade_item["隔夜利息(USD)"],
+            "contract": trade_item["合約乘數"],
+            "pnl_usd": trade_item["預估盈虧(USD)"],
+            "pnl_twd": trade_item["預估盈虧(TWD)"],
+        }
+        sync_to_cloud_async(sync_payload)
+
+        st.success("成功加入持倉清單！")
+        st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📌 當前未平倉試算單")
 
-    # 渲染雲端未平倉單
-    if not cloud_active.empty and "ID" in cloud_active.columns and len(cloud_active) > 0:
-        for idx, item in cloud_active.iterrows():
+    # 渲染記憶體中的持倉單 (不受雲端讀取延遲影響)
+    if st.session_state["active_trades"]:
+        for idx, item in enumerate(list(st.session_state["active_trades"])):
             item_id = item.get("ID", idx + 1)
             sym = item.get("商品", symbol)
             dir_val = item.get("方向", direction)
@@ -416,11 +432,10 @@ with tab1:
             with st.expander(
                 f"{dir_color} 單號 #{item_id} | {sym} {dir_val} | 手數: {lots_val} | 策略: {strat_val}"
             ):
-                st.write(item.to_dict())
+                st.write(item)
 
-                tp_val = item.get("預估出場價", entry_price)
                 try:
-                    default_exit = float(tp_val)
+                    default_exit = float(item.get("預估出場價", entry_price))
                 except Exception:
                     default_exit = 0.0
 
@@ -476,8 +491,11 @@ with tab1:
                         "盈虧(TWD)": round(final_pnl * usdtwd, 2),
                     })
 
-                    sync_to_cloud({"action": "delete", "id": item_id})
-                    st.success("平倉成功！單號已移至歷史紀錄。")
+                    # 本機刪除，並通知雲端刪除
+                    st.session_state["active_trades"].pop(idx)
+                    sync_to_cloud_async({"action": "delete", "id": item_id})
+
+                    st.success("平倉成功！已移至歷史紀錄。")
                     st.rerun()
     else:
         st.info("目前尚無未平倉持倉單。")
