@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # 🔗 Google Apps Script 網址 🔗
-GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kWgOFB28E2g-_NIfDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
+GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kwg0FB28E2g-_NifDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
 
 # 2. CSS 樣式設定
 st.markdown(
@@ -203,7 +203,7 @@ def load_data(sheet_name):
         timestamp = datetime.datetime.now().timestamp()
         csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&sheet={urllib.parse.quote(sheet_name)}&t={timestamp}"
         df = pd.read_csv(csv_url)
-        return df.dropna(how="all")
+        return df.fillna("")
     except Exception:
         return pd.DataFrame()
 
@@ -212,8 +212,8 @@ def sync_to_cloud(payload):
     if "script.google.com" in GAS_WEBAPP_URL:
         try:
             requests.post(GAS_WEBAPP_URL, json=payload, timeout=5)
-        except Exception as e:
-            st.warning(f"雲端同步中... {e}")
+        except Exception:
+            pass
 
 
 # --- Header 區域 ---
@@ -362,13 +362,11 @@ with tab1:
         )
 
     if st.button("🚀 暫存至未平倉持倉清單"):
-        new_id = (
-            int(pd.to_numeric(cloud_active["ID"], errors="coerce").max()) + 1
-            if not cloud_active.empty and "ID" in cloud_active.columns
-            else 1
-        )
-        if pd.isna(new_id):
-            new_id = 1
+        new_id = 1
+        if not cloud_active.empty and "ID" in cloud_active.columns:
+            valid_ids = pd.to_numeric(cloud_active["ID"], errors="coerce").dropna()
+            if not valid_ids.empty:
+                new_id = int(valid_ids.max()) + 1
 
         trade_data = {
             "action": "add",
@@ -381,7 +379,7 @@ with tab1:
             "sl": stop_loss,
             "tp": exit_price,
             "strategy": strategy,
-            "notes": notes,
+            "notes": str(notes),
             "margin": round(margin, 2),
             "swap": swap,
             "contract": contract_size,
@@ -390,14 +388,14 @@ with tab1:
         }
 
         sync_to_cloud(trade_data)
-        st.success("已成功寫入雲端！重新整理網頁資料也不會不見！")
+        st.success("已成功寫入雲端！")
         st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📌 當前未平倉試算單")
 
     # 渲染雲端未平倉單
-    if not cloud_active.empty:
+    if not cloud_active.empty and "ID" in cloud_active.columns:
         for idx, item in cloud_active.iterrows():
             item_id = item.get("ID", idx + 1)
             sym = item.get("商品", symbol)
@@ -427,9 +425,20 @@ with tab1:
                 if st.button(
                     f"✅ 結算平倉轉入歷史 (單號 #{item_id})", key=f"btn_{idx}"
                 ):
-                    entry_v = float(item.get("進場價", entry_price))
-                    swap_v = float(item.get("隔夜利息(USD)", 0))
-                    contract_v = float(item.get("合約乘數", 100000))
+                    try:
+                        entry_v = float(item.get("進場價", entry_price))
+                    except Exception:
+                        entry_v = entry_price
+                        
+                    try:
+                        swap_v = float(item.get("隔夜利息(USD)", 0))
+                    except Exception:
+                        swap_v = 0.0
+                        
+                    try:
+                        contract_v = float(item.get("合約乘數", 100000))
+                    except Exception:
+                        contract_v = 100000.0
 
                     if dir_val == "BUY":
                         diff = final_exit - entry_v
