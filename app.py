@@ -14,13 +14,6 @@ st.set_page_config(
 # 🔗 Google Apps Script 網址 (負責寫入) 🔗
 GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxhPaVglQaEZ-FtASX5Arp13kWgOFB28E2g-_NIfDlX_CykIx3dRtgitDH07JkE1g_uGA/exec"
 
-# 🔗 Google Sheet「發布到網路」後產生的公開 CSV 連結 (負責讀取) 🔗
-# 這是透過 檔案 > 共用 > 發布到網路 產生的連結，比 gviz/tq 端點對匿名讀取更穩定。
-PUBLISHED_CSV_URLS = {
-    "active": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT7dQTiybjwuFmuSBXJDrqCOOfl--qKtxS3cOCYSmf6DbOE9o8umf9k4dDE7THdxxjvbGgFVYAeHrot/pub?gid=133860811&single=true&output=csv",
-    "history": "https://docs.google.com/spreadsheets/d/e/2PACX-1vT7dQTiybjwuFmuSBXJDrqCOOfl--qKtxS3cOCYSmf6DbOE9o8umf9k4dDE7THdxxjvbGgFVYAeHrot/pub?gid=1025553131&single=true&output=csv",
-}
-
 # 2. CSS 樣式設定
 st.markdown(
     """
@@ -193,29 +186,26 @@ st.markdown(
 
 @st.cache_data(ttl=5)  # 5秒快取，防止重複讀取
 def load_data(sheet_name):
-    base_url = PUBLISHED_CSV_URLS.get(sheet_name)
-    if not base_url:
+    if "script.google.com" not in GAS_WEBAPP_URL:
         return pd.DataFrame()
     try:
-        # 加上時間戳參數，避免瀏覽器/中繼快取回傳舊資料
-        timestamp = datetime.datetime.now().timestamp()
-        csv_url = f"{base_url}&t={timestamp}"
-
-        # 用 requests 帶 timeout 抓資料，避免 pd.read_csv 直接讀網址時無限期卡住不動。
-        resp = requests.get(csv_url, timeout=10)
+        # 改成直接呼叫 GAS 的 doGet，即時讀取試算表當下內容，
+        # 不再透過「發布到網路」那個有快取延遲（約 5 分鐘）的公開連結。
+        resp = requests.get(GAS_WEBAPP_URL, params={"sheet": sheet_name}, timeout=15)
         resp.raise_for_status()
+        rows = resp.json()
 
-        from io import StringIO
-        df = pd.read_csv(StringIO(resp.text))
-
-        # 若讀取到 HTML，代表發布設定有問題（例如發布已停用或連結不正確）
-        if not df.empty and df.columns[0].startswith('<'):
-            st.error("⚠️ 無法讀取資料，請確認 Google Sheet 的「發布到網路」設定仍然有效。")
+        if not rows:
             return pd.DataFrame()
 
+        df = pd.DataFrame(rows)
         return df.fillna("")
     except requests.exceptions.Timeout:
-        st.error("⚠️ 讀取雲端資料逾時（超過 10 秒無回應），請檢查網路連線或稍後再試。")
+        st.error("⚠️ 讀取雲端資料逾時（超過 15 秒無回應），請檢查網路連線或稍後再試。")
+        return pd.DataFrame()
+    except ValueError as e:
+        # resp.json() 解析失敗，通常代表 GAS 回傳的不是 JSON（例如部署設定錯誤、回傳 HTML 錯誤頁）
+        st.error(f"⚠️ 雲端資料格式錯誤，請確認 GAS 部署設定是否正確。錯誤訊息: {e}")
         return pd.DataFrame()
     except Exception as e:
         st.error(f"讀取雲端資料發生錯誤: {e}")
