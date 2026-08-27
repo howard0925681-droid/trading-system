@@ -211,9 +211,11 @@ def load_data(sheet_name):
 def sync_to_cloud(payload):
     if "script.google.com" in GAS_WEBAPP_URL:
         try:
-            requests.post(GAS_WEBAPP_URL, json=payload, timeout=5)
-        except Exception:
-            pass
+            res = requests.post(GAS_WEBAPP_URL, json=payload, timeout=8)
+            if res.status_code != 200:
+                st.error(f"雲端備份回應異常: HTTP {res.status_code}")
+        except Exception as e:
+            st.warning(f"雲端同步連線提醒: {e}")
 
 
 # --- Header 區域 ---
@@ -362,40 +364,43 @@ with tab1:
         )
 
     if st.button("🚀 暫存至未平倉持倉清單"):
-        new_id = 1
-        if not cloud_active.empty and "ID" in cloud_active.columns:
-            valid_ids = pd.to_numeric(cloud_active["ID"], errors="coerce").dropna()
-            if not valid_ids.empty:
-                new_id = int(valid_ids.max()) + 1
+        try:
+            new_id = 1
+            if not cloud_active.empty and "ID" in cloud_active.columns:
+                valid_ids = pd.to_numeric(cloud_active["ID"], errors="coerce").dropna()
+                if not valid_ids.empty:
+                    new_id = int(valid_ids.max()) + 1
 
-        trade_data = {
-            "action": "add",
-            "id": int(new_id),
-            "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "symbol": symbol,
-            "direction": direction,
-            "lots": lots,
-            "entry": entry_price,
-            "sl": stop_loss,
-            "tp": exit_price,
-            "strategy": strategy,
-            "notes": str(notes),
-            "margin": round(margin, 2),
-            "swap": swap,
-            "contract": contract_size,
-            "pnl_usd": round(reward_usd + swap, 2),
-            "pnl_twd": round((reward_usd + swap) * usdtwd, 2),
-        }
+            trade_data = {
+                "action": "add",
+                "id": int(new_id),
+                "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "symbol": symbol,
+                "direction": direction,
+                "lots": float(lots),
+                "entry": float(entry_price),
+                "sl": float(stop_loss),
+                "tp": float(exit_price),
+                "strategy": strategy,
+                "notes": str(notes),
+                "margin": float(round(margin, 2)),
+                "swap": float(swap),
+                "contract": float(contract_size),
+                "pnl_usd": float(round(reward_usd + swap, 2)),
+                "pnl_twd": float(round((reward_usd + swap) * usdtwd, 2)),
+            }
 
-        sync_to_cloud(trade_data)
-        st.success("已成功寫入雲端！")
-        st.rerun()
+            sync_to_cloud(trade_data)
+            st.success("指令已送出！請重新載入確認。")
+            st.rerun()
+        except Exception as err:
+            st.error(f"寫入失敗，原因: {err}")
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.subheader("📌 當前未平倉試算單")
 
     # 渲染雲端未平倉單
-    if not cloud_active.empty and "ID" in cloud_active.columns:
+    if not cloud_active.empty and "ID" in cloud_active.columns and len(cloud_active) > 0:
         for idx, item in cloud_active.iterrows():
             item_id = item.get("ID", idx + 1)
             sym = item.get("商品", symbol)
@@ -440,12 +445,12 @@ with tab1:
                     except Exception:
                         contract_v = 100000.0
 
-                    if dir_val == "BUY":
+                    if str(dir_val) == "BUY":
                         diff = final_exit - entry_v
                     else:
                         diff = entry_v - final_exit
 
-                    if sym == "USDJPY":
+                    if str(sym) == "USDJPY":
                         final_pnl = ((diff * float(lots_val) * contract_v) / final_exit) + swap_v
                     else:
                         final_pnl = (diff * float(lots_val) * contract_v) + swap_v
