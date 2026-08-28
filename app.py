@@ -23,6 +23,24 @@ CONTRACT_SIZES = {
     "其他/自訂": 100000,
 }
 
+# 外匯報價慣例：日圓相關貨幣對報價到小數點後 3 位，其餘貨幣對報到小數點後 5 位，黃金報到小數點後 2 位。
+PRICE_DECIMALS = {
+    "XAUUSD": 2,
+    "USDJPY": 3,
+    "GBPUSD": 5,
+    "EURUSD": 5,
+    "其他/自訂": 5,
+}
+
+# 各商品的預設進場/止盈/止損價位，符合各自的報價量級與精度。
+DEFAULT_PRICES = {
+    "XAUUSD": {"entry": 3350.00, "tp": 3360.00, "sl": 3340.00},
+    "USDJPY": {"entry": 158.930, "tp": 158.100, "sl": 159.450},
+    "GBPUSD": {"entry": 1.36000, "tp": 1.38000, "sl": 1.34000},
+    "EURUSD": {"entry": 1.16000, "tp": 1.17000, "sl": 1.15000},
+    "其他/自訂": {"entry": 1.00000, "tp": 1.01000, "sl": 0.99000},
+}
+
 STRATEGY_OPTIONS = ["突破進場", "回檔接單", "指標交叉", "左側摸底/猜頂", "其他"]
 
 # 2. CSS 樣式設定 —— Bloomberg Terminal 風格：琥珀色主題 + 等寬數字
@@ -561,11 +579,22 @@ with tab1:
         contract_size = c4.number_input("合約乘數", value=CONTRACT_SIZES[symbol])
 
         c5, c6 = st.columns(2)
-        entry_price = c5.number_input("進場價位", value=158.93, format="%.2f")
-        exit_price = c6.number_input("預期止盈 (TP)", value=158.10, format="%.2f")
+        decimals = PRICE_DECIMALS.get(symbol, 5)
+        price_format = f"%.{decimals}f"
+        price_step = 10 ** (-decimals)
+        defaults = DEFAULT_PRICES.get(symbol, DEFAULT_PRICES["其他/自訂"])
+
+        entry_price = c5.number_input(
+            "進場價位", value=defaults["entry"], format=price_format, step=price_step
+        )
+        exit_price = c6.number_input(
+            "預期止盈 (TP)", value=defaults["tp"], format=price_format, step=price_step
+        )
 
         c7, c8 = st.columns(2)
-        stop_loss = c7.number_input("預定止損 (SL)", value=159.45, format="%.2f")
+        stop_loss = c7.number_input(
+            "預定止損 (SL)", value=defaults["sl"], format=price_format, step=price_step
+        )
         swap = c8.number_input("隔夜利息 (USD)", value=0.0, step=0.5)
 
         c9, c10 = st.columns([1, 2])
@@ -704,9 +733,12 @@ with tab1:
                     except Exception:
                         default_exit = 0.0
 
+                    exit_decimals = PRICE_DECIMALS.get(str(sym), 5)
                     final_exit = st.number_input(
                         f"最終平倉價 (單號 #{item_id})",
                         value=default_exit,
+                        format=f"%.{exit_decimals}f",
+                        step=10 ** (-exit_decimals),
                         key=f"exit_{idx}",
                     )
 
