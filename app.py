@@ -25,149 +25,214 @@ CONTRACT_SIZES = {
 
 STRATEGY_OPTIONS = ["突破進場", "回檔接單", "指標交叉", "左側摸底/猜頂", "其他"]
 
-# 2. CSS 樣式設定
+# 2. CSS 樣式設定 —— Bloomberg Terminal 風格：琥珀色主題 + 等寬數字
 st.markdown(
     """
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    :root {
+        --bg: #08090C;
+        --surface: #101216;
+        --surface-2: #14171D;
+        --border: #23262E;
+        --border-soft: rgba(255,255,255,0.06);
+        --accent: #F0A93B;
+        --accent-bright: #FFC65C;
+        --accent-soft: rgba(240, 169, 59, 0.12);
+        --accent-border: rgba(240, 169, 59, 0.4);
+        --info: #4E9BE0;
+        --profit: #2FBF71;
+        --loss: #FF5C5C;
+        --text: #E7E9EE;
+        --text-dim: #8B92A0;
+        --text-faint: #565C68;
+        --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+        --sans: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
     .stApp {
-        background-color: #0B0E14 !important;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background-color: var(--bg) !important;
+        background-image: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+        background-size: 26px 26px;
+        font-family: var(--sans);
     }
     header[data-testid="stHeader"] { background: transparent; }
+    section[data-testid="stSidebar"] {
+        background-color: var(--surface) !important;
+        border-right: 1px solid var(--border);
+    }
 
     /* ---------- 標題 ---------- */
     .title-container {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 12px;
         margin-bottom: 2px;
     }
     .main-title {
-        font-size: 2.4rem;
-        font-weight: 900;
-        letter-spacing: -0.5px;
-        background: linear-gradient(90deg, #00F2FE 0%, #4FACFE 100%);
+        font-family: var(--mono);
+        font-size: 2.1rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
     .header-divider {
-        height: 3px;
-        border-radius: 3px;
-        background: linear-gradient(90deg, #00F2FE 0%, rgba(79,172,254,0) 100%);
-        margin: 10px 0 22px 0;
-        opacity: 0.6;
+        height: 1px;
+        background: linear-gradient(90deg, var(--accent) 0%, rgba(240,169,59,0) 70%);
+        margin: 14px 0 22px 0;
+        opacity: 0.7;
     }
 
     /* ---------- 文字 / 標籤 ---------- */
     div[data-testid="stMarkdownContainer"] p, label[data-testid="stWidgetLabel"] p {
-        font-size: 1.05rem !important;
-        font-weight: 700 !important;
-        color: #E2E8F0 !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        color: var(--text-dim) !important;
     }
     .stMarkdown h3 {
-        font-size: 1.35rem !important;
-        font-weight: 800 !important;
-        color: #F8FAFC !important;
+        font-family: var(--mono);
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--accent) !important;
     }
-    .section-header {
-        display: flex;
+    .section-tag {
+        display: inline-flex;
         align-items: center;
-        gap: 10px;
-        margin: 6px 0 14px 0;
-    }
-    .section-header .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #00F2FE;
-        box-shadow: 0 0 10px #00F2FE;
-    }
-    .section-header span.label {
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: #F8FAFC;
-    }
-    .section-caption {
-        color: #64748B !important;
-        font-size: 0.9rem !important;
-        font-weight: 500 !important;
-        margin-top: -8px;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--accent);
+        border: 1px solid var(--accent-border);
+        background: var(--accent-soft);
+        padding: 5px 12px;
+        border-radius: 4px;
+        margin-bottom: 16px;
     }
 
     /* ---------- 輸入元件 ---------- */
     div[data-baseweb="input"] > div,
     div[data-baseweb="select"] > div {
-        background-color: #151A23 !important;
-        border: 1.5px solid #2A3241 !important;
-        border-radius: 8px !important;
-        min-height: 48px !important;
+        background-color: var(--surface-2) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 6px !important;
+        min-height: 46px !important;
     }
     div[data-baseweb="input"] > div:focus-within,
     div[data-baseweb="select"] > div:focus-within {
-        border-color: #00F2FE !important;
-        box-shadow: 0 0 10px rgba(0, 242, 254, 0.25) !important;
+        border-color: var(--accent) !important;
+        box-shadow: 0 0 0 3px var(--accent-soft) !important;
     }
     div[data-testid="stNumberInput"] input {
-        font-size: 1.1rem !important;
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+        font-size: 1.05rem !important;
         font-weight: 500 !important;
-        color: #FFFFFF !important;
-        height: 48px !important;
+        color: var(--text) !important;
+        height: 46px !important;
     }
     div[data-baseweb="select"] span,
     div[data-baseweb="select"] div,
     div[data-baseweb="select"] input {
-        font-size: 1.35rem !important;
-        font-weight: 800 !important;
-        color: #FFFFFF !important;
+        font-family: var(--mono);
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        color: var(--text) !important;
     }
     div[data-testid="stTextInput"] input {
-        font-size: 1.05rem !important;
+        font-size: 1rem !important;
         font-weight: 400 !important;
-        color: #FFFFFF !important;
-        height: 48px !important;
+        color: var(--text) !important;
+        height: 46px !important;
     }
     div[data-testid="stDateInput"] input {
-        font-size: 1rem !important;
+        font-family: var(--mono);
+        font-size: 0.95rem !important;
         font-weight: 600 !important;
-        color: #FFFFFF !important;
+        color: var(--text) !important;
     }
 
     /* ---------- 卡片式容器 ---------- */
     div[data-testid="stVerticalBlockBorderWrapper"] {
-        border-radius: 14px !important;
-        border-color: #232D3F !important;
-        background: linear-gradient(160deg, #10141C 0%, #131822 100%);
+        border-radius: 10px !important;
+        border-color: var(--border) !important;
+        background: var(--surface);
     }
 
-    /* ---------- Metric ---------- */
+    /* ---------- Metric（歷史紀錄分頁的勝率/獲利因子/最大拉回） ---------- */
     div[data-testid="stMetric"] {
-        background: linear-gradient(145deg, #131822 0%, #171D2A 100%);
-        border: 1.5px solid #232D3F;
-        padding: 18px 20px;
-        border-radius: 14px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        padding: 16px 18px;
+        border-radius: 8px;
     }
     div[data-testid="stMetricLabel"] {
-        color: #94A3B8 !important;
-        font-size: 0.92rem !important;
-        font-weight: 700 !important;
-        letter-spacing: 0.6px;
+        font-family: var(--mono);
+        color: var(--text-faint) !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
     }
     div[data-testid="stMetricValue"] {
-        color: #00F2FE !important;
-        font-size: 1.9rem !important;
-        font-weight: 900 !important;
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+        color: var(--accent) !important;
+        font-size: 1.6rem !important;
+        font-weight: 700 !important;
+    }
+
+    /* ---------- 交易帳本橫幅（KPI） ---------- */
+    .ledger-strip {
+        display: flex;
+        flex-wrap: wrap;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 4px 0 24px 0;
+    }
+    .ledger-item {
+        flex: 1;
+        min-width: 160px;
+        padding: 16px 22px;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .ledger-item:last-child { border-right: none; }
+    .ledger-label {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--text-faint);
+    }
+    .ledger-value {
+        font-family: var(--mono);
+        font-size: 1.55rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--text);
     }
 
     /* ---------- 風控試算面板 ---------- */
     .risk-card {
-        background: linear-gradient(135deg, #111622 0%, #172030 100%);
-        border: 1.5px solid #222F43;
-        border-left: 6px solid #00F2FE;
-        border-radius: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 10px;
         padding: 20px 24px;
         margin: 18px 0;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
     }
     .risk-grid {
         display: flex;
@@ -186,86 +251,105 @@ st.markdown(
         align-items: center;
         text-align: center;
         padding: 12px 8px;
-        background: rgba(255, 255, 255, 0.03);
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        border: 1px solid var(--border-soft);
     }
     .risk-label {
-        color: #94A3B8;
-        font-size: 0.9rem;
-        font-weight: 700;
+        font-family: var(--mono);
+        color: var(--text-faint);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 1px;
         text-transform: uppercase;
         margin-bottom: 6px;
     }
     .risk-value {
-        font-size: 1.5rem;
-        font-weight: 900;
+        font-family: var(--mono);
+        font-size: 1.4rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
     }
     .rr-badge {
         display: inline-block;
-        padding: 5px 16px;
-        border-radius: 8px;
-        font-weight: 800;
-        font-size: 1.25rem;
+        font-family: var(--mono);
+        padding: 4px 14px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 1.15rem;
     }
-    .rr-good { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1.5px solid #10B981; }
-    .rr-bad { background: rgba(239, 68, 68, 0.2); color: #EF4444; border: 1.5px solid #EF4444; }
+    .rr-good { background: rgba(47, 191, 113, 0.15); color: var(--profit); border: 1px solid var(--profit); }
+    .rr-bad { background: rgba(255, 92, 92, 0.15); color: var(--loss); border: 1px solid var(--loss); }
 
     /* ---------- 每日風控警示橫幅 ---------- */
     .daily-alert {
-        border-radius: 12px;
-        padding: 16px 22px;
+        border-radius: 10px;
+        padding: 14px 20px;
         margin: 6px 0 18px 0;
-        font-weight: 800;
-        font-size: 1.05rem;
+        font-weight: 700;
+        font-size: 0.98rem;
         display: flex;
         align-items: center;
         gap: 10px;
     }
     .daily-alert-danger {
-        background: rgba(239, 68, 68, 0.12);
-        border: 1.5px solid #EF4444;
-        color: #FCA5A5;
+        background: rgba(255, 92, 92, 0.1);
+        border: 1px solid var(--loss);
+        color: #FF8A8A;
     }
     .daily-alert-safe {
-        background: rgba(16, 185, 129, 0.08);
-        border: 1.5px solid #1F6E52;
+        background: rgba(47, 191, 113, 0.06);
+        border: 1px solid #1F6E52;
         color: #6EE7B7;
     }
 
     /* ---------- 按鈕 ---------- */
     .stButton>button {
         width: 100%;
-        background: linear-gradient(90deg, #0052D4 0%, #4364F7 51%, #6FB1FC 100%);
-        color: #FFFFFF !important;
+        background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 100%);
+        color: #17130A !important;
         border: none;
-        padding: 12px 24px;
-        font-size: 1.1rem;
-        font-weight: 800;
-        border-radius: 10px;
-        letter-spacing: 0.5px;
-        box-shadow: 0 4px 18px rgba(67, 100, 247, 0.4);
+        padding: 11px 24px;
+        font-family: var(--mono);
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(240, 169, 59, 0.2);
         transition: all 0.2s ease;
     }
     .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(67, 100, 247, 0.6);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 22px rgba(240, 169, 59, 0.35);
     }
 
     button[data-baseweb="tab"] {
-        font-size: 1.1rem !important;
-        font-weight: 800 !important;
+        font-family: var(--mono);
+        font-size: 0.95rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 1px;
+        text-transform: uppercase;
         padding: 10px 20px !important;
+        color: var(--text-dim) !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: var(--accent) !important;
+    }
+    div[data-baseweb="tab-highlight"], div[data-baseweb="tab-border"] {
+        background-color: var(--accent) !important;
     }
 
     /* ---------- Alert box 深色化 ---------- */
     div[data-testid="stAlert"] {
-        border-radius: 10px !important;
+        border-radius: 8px !important;
     }
+
+    hr { border-color: var(--border) !important; }
 
     /* ---------- 手機版響應式 ---------- */
     @media (max-width: 700px) {
-        .main-title { font-size: 1.7rem; }
+        .main-title { font-size: 1.5rem; }
         div[data-testid="stHorizontalBlock"] {
             flex-wrap: wrap !important;
         }
@@ -273,7 +357,11 @@ st.markdown(
             min-width: 100% !important;
         }
         .risk-item { min-width: 100%; }
-        div[data-testid="stMetricValue"] { font-size: 1.5rem !important; }
+        .ledger-item {
+            min-width: 50%;
+            border-bottom: 1px solid var(--border);
+        }
+        .ledger-value { font-size: 1.25rem; }
     }
 </style>
 """,
@@ -281,10 +369,10 @@ st.markdown(
 )
 
 
-def section_header(icon_dot_label):
-    """統一的區塊標題樣式（左側光點 + 標題文字）。"""
+def section_header(label):
+    """統一的區塊標題樣式（terminal 風格的方括號標籤）。"""
     st.markdown(
-        f'<div class="section-header"><span class="dot"></span><span class="label">{icon_dot_label}</span></div>',
+        f'<div class="section-tag">[ {label} ]</div>',
         unsafe_allow_html=True,
     )
 
@@ -350,7 +438,7 @@ def merge_cloud_and_local(cloud_df, local_list, id_col="ID"):
 st.markdown(
     """
 <div class="title-container">
-    <span class="main-title">⚡ FX & Gold Tracker Pro</span>
+    <span class="main-title">FX · GOLD TRACKER</span>
 </div>
 """,
     unsafe_allow_html=True,
@@ -430,14 +518,32 @@ elif today_pnl < 0:
         unsafe_allow_html=True,
     )
 
-# --- KPI 卡片 ---
-k1, k2, k3, k4 = st.columns(4)
-k1.metric("歷史累計總盈虧 (USD)", f"${total_usd:,.2f}")
-k2.metric("歷史累計總盈虧 (TWD)", f"NT${total_twd:,.0f}")
-k3.metric("今日已實現盈虧 (USD)", f"${today_pnl:,.2f}")
-k4.metric("整體勝率", f"{overall_win_rate:.1f}%")
-
-st.markdown("<br>", unsafe_allow_html=True)
+# --- KPI 帳本橫幅 ---
+total_color = "var(--profit)" if total_usd >= 0 else "var(--loss)"
+today_color = "var(--profit)" if today_pnl >= 0 else "var(--loss)"
+st.markdown(
+    f"""
+<div class="ledger-strip">
+    <div class="ledger-item">
+        <span class="ledger-label">歷史累計 · USD</span>
+        <span class="ledger-value" style="color:{total_color};">${total_usd:,.2f}</span>
+    </div>
+    <div class="ledger-item">
+        <span class="ledger-label">歷史累計 · TWD</span>
+        <span class="ledger-value">NT${total_twd:,.0f}</span>
+    </div>
+    <div class="ledger-item">
+        <span class="ledger-label">今日已實現盈虧</span>
+        <span class="ledger-value" style="color:{today_color};">${today_pnl:,.2f}</span>
+    </div>
+    <div class="ledger-item">
+        <span class="ledger-label">整體勝率</span>
+        <span class="ledger-value" style="color:var(--accent);">{overall_win_rate:.1f}%</span>
+    </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
 
 # --- 主 Tabs ---
 tab1, tab2, tab3 = st.tabs(["⚡ 建倉與持倉", "📜 歷史紀錄", "📊 統計分析"])
