@@ -237,8 +237,8 @@ st.markdown(
     .risk-grid {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        gap: 14px;
+        align-items: stretch;
+        gap: 12px;
         margin-top: 14px;
         width: 100%;
         flex-wrap: wrap;
@@ -249,8 +249,9 @@ st.markdown(
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         text-align: center;
-        padding: 12px 8px;
+        padding: 10px 8px;
         background: rgba(255, 255, 255, 0.02);
         border-radius: 8px;
         border: 1px solid var(--border-soft);
@@ -258,28 +259,21 @@ st.markdown(
     .risk-label {
         font-family: var(--mono);
         color: var(--text-faint);
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 600;
         letter-spacing: 1px;
         text-transform: uppercase;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
     .risk-value {
         font-family: var(--mono);
-        font-size: 1.4rem;
+        font-size: 1.3rem;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
+        line-height: 1.3;
     }
-    .rr-badge {
-        display: inline-block;
-        font-family: var(--mono);
-        padding: 4px 14px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 1.15rem;
-    }
-    .rr-good { background: rgba(47, 191, 113, 0.15); color: var(--profit); border: 1px solid var(--profit); }
-    .rr-bad { background: rgba(255, 92, 92, 0.15); color: var(--loss); border: 1px solid var(--loss); }
+    .rr-value-good { color: var(--profit); }
+    .rr-value-bad { color: var(--loss); }
 
     /* ---------- 每日風控警示橫幅 ---------- */
     .daily-alert {
@@ -318,6 +312,12 @@ st.markdown(
         border-radius: 6px;
         box-shadow: 0 4px 16px rgba(240, 169, 59, 0.2);
         transition: all 0.2s ease;
+    }
+    .stButton>button p,
+    .stButton>button div,
+    .stButton>button span {
+        color: #17130A !important;
+        font-weight: 700 !important;
     }
     .stButton>button:hover {
         transform: translateY(-1px);
@@ -594,7 +594,7 @@ with tab1:
 
         rr_ratio = (reward_points / risk_points) if risk_points > 0 else 0
 
-        rr_class = "rr-good" if rr_ratio >= 1.5 else "rr-bad"
+        rr_class = "rr-value-good" if rr_ratio >= 1.5 else "rr-value-bad"
         st.markdown(
             f"""
         <div class="risk-card">
@@ -614,7 +614,7 @@ with tab1:
                 </div>
                 <div class="risk-item">
                     <span class="risk-label">風報比 (R:R)</span>
-                    <div style="margin-top: 2px;"><span class="rr-badge {rr_class}">1 : {rr_ratio:.2f}</span></div>
+                    <span class="risk-value {rr_class}">1 : {rr_ratio:.2f}</span>
                 </div>
             </div>
         </div>
